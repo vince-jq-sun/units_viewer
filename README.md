@@ -1,17 +1,16 @@
-# Units Viewer Help
-
 ## Introduction
 
-Units Viewer is a tool tailored for researchers working with datasets composed of multiple units, such as neurons. It is ideal for handling large datasets, offering streamlined navigation through figures, easy tagging, and advanced filtering options. This tool facilitates the building of intuition by allowing efficient and organized inspection of each unit.
+Units Viewer is a tool tailored for researchers working with datasets composed of multiple units, such as neurons. It is ideal for handling large datasets, offering streamlined navigation through figures, easy tagging, and flexible filtering options. This tool facilitates the building of intuition by allowing efficient and organized inspection of each unit.
 
 ## Features
 
 - View detailed profiles of individual neurons.
 - Tagging system to annotate units with customizable tags and notes.
 - Flexible filtering based on tags to streamline the analysis process.
-- Intuitive navigation through large datasets.
+- Easy navigation through large datasets.
 - Local web-based interface for easy access.
 
+A quick introduction of the panel
 ![Panel Introduction](panel_introduction.jpg)
 
 ## Installation
