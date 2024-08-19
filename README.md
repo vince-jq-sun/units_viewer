@@ -44,7 +44,7 @@ This project is built with Node.js. Before starting, ensure that Node.js is inst
 
 - Use the input box to enter queries for unit IDs and tags.
 - Quoted strings will match parts of unit IDs while unquoted strings represent tags. 
-- Supports *logical operations like `&` (AND), `|` (OR), `!` (NOT)*, with priorities: `!` > `&` > `|`
+- Supports **logical operations like `&` (AND), `|` (OR), `!` (NOT)**, with priorities: `!` > `&` > `|`
 - To reset the filter and include all units, submit an empty query.
 
 ## Contributing
