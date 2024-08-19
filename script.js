@@ -202,7 +202,7 @@ function toggleHelpPopup() {
 }
 
 function openHelpPage() {
-    window.open('help.html', '_blank');
+    window.open('https://github.com/vince-jq-sun/units_viewer/blob/main/README.md', '_blank');
 }
 
 function fetchUnitLabels() {
