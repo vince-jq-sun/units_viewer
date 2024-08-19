@@ -1,0 +1,57 @@
+{
+  "s22ch58ba8c1": [
+    "preSMA",
+    "color",
+    "%This neuron responds to green color",
+    "postBP",
+    "highrate",
+    "%Adding notes by prefix \"%\""
+  ],
+  "s22ch58ba8c2": [
+    "preSMA",
+    "conflict",
+    "%This neuron responds to stimulus onset",
+    "lowrate"
+  ],
+  "s22ch58ba8c3": [
+    "preSMA",
+    "text",
+    "lowrate"
+  ],
+  "s22ch59ba8c2": [
+    "preSMA",
+    "conflict",
+    "lowrate"
+  ],
+  "s22ch61ba8c1": [
+    "preSMA",
+    "color",
+    "1/n",
+    "lowrate"
+  ],
+  "s22ch62ba8c3": [
+    "preSMA",
+    "color",
+    "lowrate"
+  ],
+  "s22ch64ba8c4": [
+    "preSMA",
+    "conflict",
+    "highrate"
+  ],
+  "s5ch4ba5c1": [
+    "MCC",
+    "color",
+    "text",
+    "highrate"
+  ],
+  "s5ch5ba5c1": [
+    "MCC",
+    "conflict"
+  ],
+  "s5ch5ba5c4": [
+    "MCC",
+    "color",
+    "lowrate"
+  ]
+}

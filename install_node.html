@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Install Node.js</title>
+    <link rel="stylesheet" href="style.css"> <!-- Assuming styles are in a separate CSS file -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        p, li {
+            color: #666;
+            margin-bottom: 10px;
+        }
+        ul {
+            margin-bottom: 20px;
+            padding-left: 20px;
+        }
+        a {
+            color: #0077cc;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>How to Install Node.js</h1>
+        <p>This guide provides several methods to install Node.js, including using the official website, package managers, and Node Version Manager (NVM).</p>
+        
+        <h2>Method 1: Official Website</h2>
+        <p>Download the installer from the <a href="https://nodejs.org" target="_blank">official Node.js website</a>.</p>
+        <ul>
+            <li>Select the LTS version for stability or the Current version for the latest features.</li>
+            <li>Follow the installation instructions for your operating system.</li>
+            <li>Verify the installation in your terminal or command prompt: <code>node --version</code> and <code>npm --version</code>.</li>
+        </ul>
+        
+        <h2>Method 2: Package Manager</h2>
+        <h3>For macOS:</h3>
+        <p>Using Homebrew:</p>
+        <ul>
+            <li>Open terminal and install Homebrew by running:
+                <code>/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</code></li>
+            <li>Install Node.js: <code>brew install node</code></li>
+            <li>Verify the installation: <code>node --version</code></li>
+        </ul>
+        <h3>For Linux:</h3>
+        <p>Using apt for Debian-based distributions:</p>
+        <ul>
+            <li>Update your package list: <code>sudo apt update</code></li>
+            <li>Install Node.js: <code>sudo apt install nodejs</code></li>
+            <li>Install npm: <code>sudo apt install npm</code></li>
+            <li>Verify the installation: <code>node --version</code></li>
+        </ul>
+        <h3>For Windows:</h3>
+        <p>Using Chocolatey:</p>
+        <ul>
+            <li>Open Command Prompt as an administrator.</li>
+            <li>Install Chocolatey by running:
+                <code>Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))</code></li>
+            <li>Install Node.js: <code>choco install nodejs</code></li>
+            <li>Verify the installation: <code>node --version</code></li>
+        </ul>
+        
+        <h2>Method 3: Node Version Manager (NVM)</h2>
+        <p>Allows installation of multiple Node.js versions.</p>
+        <h3>For macOS/Linux:</h3>
+        <ul>
+            <li>Install NVM: <code>curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.4/install.sh | bash</code></li>
+            <li>Install Node.js: <code>nvm install node</code></li>
+            <li>Verify the installation: <code>node --version</code></li>
+        </ul>
+        <h3>For Windows:</h3>
+        <ul>
+            <li>Download NVM for Windows from <a href="https://github.com/coreybutler/nvm-windows/releases" target="_blank">GitHub</a>.</li>
+            <li>Follow the installation prompts.</li>
+            <li>Install Node.js: <code>nvm install latest</code></li>
+            <li>Verify the installation: <code>node --version</code></li>
+        </ul>
+        
+        <p>If you encounter any issues, refer to the respective documentation or seek help from community forums.</p>
+    </div>
+</body>
+</html>
