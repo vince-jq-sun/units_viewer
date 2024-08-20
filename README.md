@@ -67,6 +67,6 @@ Thank you for using Units Viewer!
 
 If you find this tool helpful and would like to support my work, consider buying me a coffee! Your support is greatly appreciated and helps me continue developing and improving this tool.
 
-![Support via Buy Me a Coffee](URL_to_QR_code_image)
+![Support via Buy Me a Coffee](bmc_qr.png)
 
 To quickly support the project, simply scan the QR code with your phone’s camera to visit my Buy Me a Coffee page.
