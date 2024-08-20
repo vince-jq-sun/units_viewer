@@ -36,7 +36,7 @@ This project is built with Node.js. Before starting, ensure that Node.js is inst
 
 ### Navigation and Tagging
 
-- Navigate though units by clicking **↑** for the previous, **↓** for the next, corresponding to _Ctrl_ + _1_ and _Ctrl_ + _2_ respectively.
+- Navigate though units by clicking <u>↑</u> for the previous, `↓` for the next, corresponding to _Ctrl_ + _1_ and _Ctrl_ + _2_ respectively.
 - Tags can be added or removed by entering the tag in the text box and clicking _+_ or _-_.
 - Notes can be added by prefixing the text with `%` and clicking `+`.
 
@@ -44,7 +44,7 @@ This project is built with Node.js. Before starting, ensure that Node.js is inst
 
 - Use the input box to enter queries for unit IDs and tags.
 - Quoted strings will match parts of unit IDs while unquoted strings represent tags. 
-- Supports ==logical operations like `&` (AND), `|` (OR), `!` (NOT)==, with priorities: `!` > `&` > `|`
+- Supports **logical operations like `&` (AND), `|` (OR), `!` (NOT)**, with priorities: `!` > `&` > `|`
 - To reset the filter and include all units, submit an empty query.
 
 ## Contributing
