@@ -37,7 +37,9 @@
   "s22ch64ba8c4": [
     "preSMA",
     "conflict",
-    "highrate"
+    "highrate",
+    "%This neuron has a silent period between after stimulus onset and before button press.",
+    "%This neuron does not have many trials"
   ],
   "s5ch4ba5c1": [
     "MCC",

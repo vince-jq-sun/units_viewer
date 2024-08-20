@@ -118,7 +118,15 @@
         #searchButton {
             margin-left: 8px; /* Add some space between the search box and the button */
             margin-bottom: 6px;
-            padding: 4px 9px;
+            padding: 4px 7px;
+            height: 100%; /* Make the button height equal to the search box height */
+            box-sizing: border-box;
+            cursor: pointer; /* Change cursor to pointer on hover */
+        }
+        #trackButton {
+            margin-left: 8px; /* Add some space between the search box and the button */
+            margin-bottom: 6px;
+            padding: 4px 5px;
             height: 100%; /* Make the button height equal to the search box height */
             box-sizing: border-box;
             cursor: pointer; /* Change cursor to pointer on hover */
@@ -156,6 +164,9 @@
         .widget {
             margin-top: 10px; /* Add space above the widget */
         }
+        .tracking-tag {
+            text-decoration: underline;
+        }
         #image-adjust {
             margin-top: 10px;
         }
@@ -189,13 +200,13 @@
             cursor: pointer;
         }
         .short-button-tag-1 {
-            margin-left: 8px;
+            margin-left: 4px;
             padding: 4px 6px;
             cursor: pointer;
         }
         .short-button-tag-2 {
-            margin-left: 2px;
-            padding: 4px 6px;
+            margin-left: 4px;
+            padding: 4px 8px;
             cursor: pointer;
         }     
         #addAllButton {
@@ -339,9 +350,12 @@
             <div id="search-container">
                 <textarea id="searchBox" placeholder="Enter to query tags and IDs('xx') OR edit tags, notes(%xyz)"></textarea>
                 <div class="tag-button-container">
-                    <button id="searchButton" onclick="applySearch()">Filter</button>
-                    <div class="tag-edit-button-container">
+                    <div class="tag-search-button-container">
+                        <button id="searchButton" onclick="applySearch()">Filter</button>
                         <button class="short-button-tag-1" onclick="addTag()">+</button>
+                    </div>
+                    <div class="tag-edit-button-container">
+                        <button id="trackButton" onclick="applyTracking()">Track</button>
                         <button class="short-button-tag-2" onclick="removeTagOrNote()">-</button>
                     </div>
                 </div>

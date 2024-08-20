@@ -101,7 +101,7 @@ let tagsFile = 'tags_1.json'; // Default tags file
 let currentTagFile = ''; // Global variable
 let allFolderNames = [];
 let notes = [];
-
+let trackingTags = [];
 
 function listFolderNames() {
     const fs = require('fs');
@@ -688,6 +688,15 @@ function remapScale() {
     });
 }
 
+
+function applyTracking() {
+    const inputBox = document.getElementById('searchBox');
+    const inputText = inputBox.value;
+    trackingTags = inputText.split(',').map(tag => tag.trim());
+
+    displayCurrentUnit(); // Update the display to apply the tracking styles
+}
+
 function displayCurrentUnit() {
     const neuronIdDisplay = document.getElementById('neuronIdDisplay');
     const neuronTagDisplay = document.getElementById('neuronTagDisplay');
@@ -702,16 +711,14 @@ function displayCurrentUnit() {
         const currentTagsAndNotes = neuronLabels[currentUnitId] || [];
         const sortedTags = Object.keys(tagOccurrences).sort((a, b) => tagOccurrences[b] - tagOccurrences[a]);
 
-        // Display all tags, highlight current tags
+        // Display all tags, highlight current tags and apply tracking style
         const tags = sortedTags.map(tag => {
             const tagDisplay = `${tag} *${tagOccurrences[tag]}`;
-            if (!tag.startsWith('%')) { // Exclude notes from tag processing
-                if (currentTagsAndNotes.includes(tag)) {
-                    return `<span class="highlighted-tag">${tagDisplay}</span>`; // Black for current neuron tags
-                } else {
-                    return `<span class="default-tag">${tagDisplay}</span>`; // Gray for all other tags
-                }
+            let tagClass = currentTagsAndNotes.includes(tag) ? 'highlighted-tag' : 'default-tag';
+            if (trackingTags.includes(tag)) {
+                tagClass += ' tracking-tag'; // Add the tracking-tag class for underline
             }
+            return `<span class="${tagClass}">${tagDisplay}</span>`;
         }).filter(tag => tag); // Remove undefined entries (from notes)
 
         neuronTagDisplay.innerHTML = tags.join(' ');
@@ -721,9 +728,6 @@ function displayCurrentUnit() {
         const neuronNoteDisplay = document.getElementById('neuronNoteDisplay');
         neuronNoteDisplay.innerHTML = notes.length ? `${notes.map(note => `<li>${note}</li>`).join('')}` : 'No notes available';
 
-        console.log("Notes: ", notes);
-        console.log("aha: ", currentTagsAndNotes);
-
         displayUnitImages(currentUnitId);
     } else {
         neuronIdDisplay.textContent = 'No Unit Selected';
@@ -732,6 +736,7 @@ function displayCurrentUnit() {
         document.getElementById('image-container').innerHTML = ''; // Clear the image container if no neuron is selected
     }
 }
+
 
 function appendAllFolderNamesToNeuronLabels() {
     let updated = false;
