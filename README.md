@@ -31,20 +31,20 @@ This project is built with Node.js. Before starting, ensure that Node.js is inst
 
 1. Ensure that the images are correctly placed in their respective folders.
 2. From the terminal or your IDE, navigate to the `units_viewer` directory and execute `npm start`. This will open the viewer in your default web browser.
-3. If it does not automatically open, you can manually access it by visiting `http://localhost:2024`.
-4. If there is no `.json` file in `./units_tags`, you can create a new one by clicking `New Tag File`. Consider adding the names of all image folders as keys to this new file.
+3. If it does not automatically open, you can manually access it by visiting [localhost:2024](http://localhost:2024).
+4. If there is no ".json" file in "./units_tags", you can create a new one by clicking __New Tag File__. Consider adding the names of all image folders as keys to this new file.
 
 ### Navigation and Tagging
 
-- Navigate though units by clicking <u>↑</u> for the previous, `↓` for the next, corresponding to _Ctrl_ + _1_ and _Ctrl_ + _2_ respectively.
-- Tags can be added or removed by entering the tag in the text box and clicking _+_ or _-_.
+- Navigate though units by clicking __↑__ for the previous, __↓__ for the next, corresponding to _Ctrl_ + _1_ and _Ctrl_ + _2_ respectively.
+- Tags can be added or removed by entering the tag in the text box and clicking __+__ or __-__.
 - Notes can be added by prefixing the text with `%` and clicking `+`.
 
 ### Filtering
 
-- Use the input box and <u>Filter</u> unit IDs and tags. 
+- Use the input box and <u>Filter<u> unit IDs and tags. 
 - Quoted strings will match parts of unit IDs while unquoted strings represent tags. 
-- Supports **logical operations** like `&` (AND), `|` (OR), `!` (NOT), with priorities: `!` > `&` > `|`
+- Supports logical operations like `&` (AND), `|` (OR), `!` (NOT), with priorities: `!` > `&` > `|`
 - To reset the filter and include all units, submit an empty query.
 
 ## Contributing
