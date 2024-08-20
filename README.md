@@ -24,7 +24,7 @@ This project is built with Node.js. Before starting, ensure that Node.js is inst
 1. Clone the repository or download the `units_viewer` folder to your local machine.
 2. Open your terminal and navigate to the project directory.
 3. Run `npm install` to install all required dependencies.
-4. Place your unit images in the `./units_figures` directory, organized by subfolders named with unit IDs.
+4. Replace folders inside `./units_figures` with your own. Figures are organized by subfolders named with unit IDs. Try to use comparable sizes for all the plots.
 5. Optionally, place your custom `tags.json` file in `./units_tags`. This file should be a JSON-formatted dictionary where keys are unit IDs, and values are lists of tags or notes (notes prefixed by `%`).
 
 ## Usage
@@ -43,12 +43,13 @@ This project is built with Node.js. Before starting, ensure that Node.js is inst
 - Notes can be added by prefixing the text with `%` and clicking `+`.
 - To switch to a different tag file, select `xx.json` in the dropdown list, then click __Load__
 
-### Filtering
+### Filtering and tracking
 
-- Use the input box and <u>Filter<u> unit IDs and tags. 
-- Quoted strings will match parts of unit IDs while unquoted strings represent tags. 
-- Supports logical operations like `&` (AND), `|` (OR), `!` (NOT), with priorities: `!` > `&` > `|`
-- To reset the filter and include all units, submit an empty query.
+- Use the input box and __Filter__ button to search for unit IDs and tags. 
+- Enter quoted strings to match portions of unit IDs; use unquoted strings to specify tags.
+- Supports logical operations like `&` (AND), `|` (OR), `!` (NOT) for tags, with priorities: `!` > `&` > `|`
+- Use the __Track__ button to underline multiple tags; separate the tags with commas in the input box.
+- To clear the filters or tracking settings, click __Filter__ or __Track__ with an empty input box.
 
 ## Contributing
 
