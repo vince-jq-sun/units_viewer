@@ -1,12 +1,14 @@
 ## Introduction
 
-Units Viewer is a tool tailored for researchers working with datasets composed of multiple units, such as neurons. It is ideal for handling large datasets, offering streamlined navigation through figures, easy tagging, and flexible filtering options. This tool facilitates the building of intuition by allowing efficient and organized inspection of each unit.
+Units Viewer is a tool tailored for researchers working with datasets composed of multiple units, such as neurons. It is ideal for handling large datasets, offering streamlined navigation through figures, easy tagging, and flexible filtering options. This tool allows you to build better intuition through efficient and organized inpection of each unit.
+
+facilitates the building of intuition by allowing efficient and organized inspection of each unit.
 
 ## Features
 
 - View detailed profiles of individual neurons.
-- Tagging system to annotate units with customizable tags and notes.
-- Flexible filtering based on tags to streamline the analysis process.
+- Customizable tags and notes for every unit.
+- Flexible filtering based on tags to streamline the inspection process.
 - Easy navigation through large datasets.
 - Local web-based interface for easy access.
 
@@ -32,7 +34,7 @@ This project is built with Node.js. Before starting, ensure that Node.js is inst
 1. Ensure that the images are correctly placed in their respective folders.
 2. From the terminal or your IDE, navigate to the `units_viewer` directory and execute `npm start`. This will open the viewer in your default web browser.
 3. If it does not automatically open, you can manually access it by visiting [localhost:2024](http://localhost:2024).
-4. If there is no ".json" file in "./units_tags", you can create a new one by clicking __New Tag File__. Consider adding the names of all image folders as keys to this new file by clicking __Fill All__.
+4. If there is no `.json` file in `./units_tags`, you can create a new one by clicking __New Tag File__. Consider adding the names of all image folders as keys to this new file by clicking __Fill All__.
 
 ### Navigation and Tagging
 
