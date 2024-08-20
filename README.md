@@ -36,8 +36,8 @@ This project is built with Node.js. Before starting, ensure that Node.js is inst
 
 ### Navigation and Tagging
 
-- Navigate between units using the arrow keys (↑ for previous, ↓ for next) or by pressing `Ctrl+1` and `Ctrl+2`.
-- Tags can be added or removed by entering the tag in the text box and clicking `+` or `-`.
+- Navigate between units by clicking the arrow buttons (`↑` for previous, `↓` for next) or by pressing _Ctrl_ + _1_ and _Ctrl_ + _2_ keys.
+- Tags can be added or removed by entering the tag in the text box and clicking _+_ or _-_.
 - Notes can be added by prefixing the text with `%` and clicking `+`.
 
 ### Filtering
