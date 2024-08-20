@@ -61,6 +61,12 @@ This project is licensed under the Apache License, Version 2.0. See the [LICENSE
 
 ## Support
 
-For support, email me at [vince.sun@nyu.edu](mailto:vince.sun@nyu.edu) or leave a message on the GitHub issues page.
+Questions are welcomed at [vince.sun@nyu.edu](mailto:vince.sun@nyu.edu) or on the GitHub issues page.
 
 Thank you for using Units Viewer!
+
+If you find this tool helpful and would like to support my work, consider buying me a coffee! Your support is greatly appreciated and helps me continue developing and improving this tool.
+
+![Support via Buy Me a Coffee](URL_to_QR_code_image)
+
+To quickly support the project, simply scan the QR code with your phone’s camera to visit my Buy Me a Coffee page.
