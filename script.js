@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // fetchUnitLabels();
-    initializeCurrentTagFile()
+    initializeCurrentTagFile();
 
     // Add event listeners for keydown events
     document.addEventListener('keydown', handleKeyDown);
@@ -12,6 +11,22 @@ document.addEventListener('DOMContentLoaded', () => {
             applySearch();
         }
     });
+
+    // Add event listener for the units path link
+    const unitsPathLink = document.getElementById('unitsPathLink');
+    unitsPathLink.addEventListener('click', handleUnitsPathClick);
+
+    // Initialize the units path link
+    updateUnitsPathLink();
+
+    // Get initial path
+    fetch('/get-current-units-path')
+        .then(response => response.json())
+        .then(data => {
+            currentUnitsPath = data.displayPath;
+            updateUnitsPathLink();
+        })
+        .catch(error => console.error('Error getting initial path:', error));
 });
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -94,6 +109,17 @@ let currentTagFile = ''; // Global variable
 let allFolderNames = [];
 let notes = [];
 let trackingTags = [];
+let currentUnitsPath = 'units'; // Initialize with default path
+
+function updateUnitsPathLink() {
+    const link = document.getElementById('unitsPathLink');
+    link.textContent = currentUnitsPath || 'Select Path';
+}
+
+async function handleUnitsPathClick(event) {
+    event.preventDefault();
+    await selectFolder();
+}
 
 function listFolderNames() {
     const fs = require('fs');
@@ -778,16 +804,18 @@ async function selectFolder() {
 
         if (response.ok) {
             const data = await response.json();
+            currentUnitsPath = data.displayPath; // Update the current path with the new format
+            updateUnitsPathLink();
             alert('units文件夹已更新');
             if (!data.hasJsonFiles) {
                 alert('新文件夹中没有标签文件 (.json)');
                 currentTagFile = null;
             }
-            await fetchUnitLabels(); // This will now handle the case when currentTagFile is null
+            await fetchUnitLabels();
             allFolderNames = await fetch('/list-folder-names').then(res => res.json());
-            await loadImages(); // Load images from the new folder
-            populateDropdown(); // Update the dropdown with new JSON files
-            displayCurrentUnit(); // Update the display
+            await loadImages();
+            populateDropdown();
+            displayCurrentUnit();
         } else {
             const errorData = await response.json();
             alert('更新失败: ' + errorData.message);
@@ -828,8 +856,3 @@ function displayImages(imageFiles, neuronId) {
 function getCurrentNeuronId() {
     return currentUnitId;
 }
-
-// 确保在页面加载完成后添加事件监听器
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('selectFolderBtn').addEventListener('click', selectFolder);
-});

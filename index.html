@@ -288,7 +288,7 @@
             align-items: center; /* Centers the items vertically */
             margin-left: 6px;
             margin-right: 0px;
-            margin-top: 0px;
+            margin-top: 6px;
         }
         #tag-file-build {
             display: flex;
@@ -305,10 +305,15 @@
             cursor: pointer;
             margin-left: 3px;
         }
-        #selectFolderBtn {
+        #unitsPathContainer {
+            margin-left: 6px;
+            flex: 1;
+        }
+        #unitsPathLink {
             padding: 4px 5px;
             cursor: pointer;
-            margin-left: 10px;
+            margin-left: 0px;
+            text-decoration: underline;
         }
         .title-with-version {
             display: flex;
@@ -356,6 +361,16 @@
             margin-top: 4px;
             margin-bottom: 0px;
         }
+        .units-path-link {
+            flex: 1 0 100%;
+            text-align: center;
+            padding: 5px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
     </style>
 </head>
 <body>
@@ -369,6 +384,9 @@
         </div>
 
         <div class="section">
+            <div id="unitsPathContainer">
+                <a href="#" id="unitsPathLink" class="units-path-link">Select Path</a>
+            </div>
             <div id="tag-file-switch">
                 <select id="tagFileDropdown"></select>
                 <button id="load-button" onclick="loadSelectedTagFile()">Load</button>
@@ -378,10 +396,9 @@
                 <button id="button-switch-1" onclick="switchToPreviousUnit()">&larr;</button>
                 <button id="button-switch-2" onclick="switchToNextUnit()">&rarr;</button>
 
-                <div style="display: flex;">
-                    <button id="newButton" style="flex-grow: 1;">NewJS</button>
-                    <button id="fillButton" style="flex-grow: 1;">FillAll</button>
-                    <button id="selectFolderBtn" style="flex-grow: 1;">UPath</button>
+                <div style="display: flex; flex-wrap: wrap;">
+                    <button id="newButton" style="flex: 1 0 auto;">NewJS</button>
+                    <button id="fillButton" style="flex: 1 0 auto;">FillAll</button>
                 </div>
                 <div id="overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:100;"></div>
                 <div id="newFileModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background-color:white; padding:20px; border-radius:5px; box-shadow:0 4px 8px rgba(0,0,0,0.2); z-index:101;">
@@ -469,8 +486,83 @@
 
         // 确保在页面加载完成后添加事件监听器
         document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('selectFolderBtn').addEventListener('click', selectFolder);
+            initializeCurrentTagFile();
+
+            // Add event listeners for keydown events
+            document.addEventListener('keydown', handleKeyDown);
+
+            // Add event listener for Enter key in the search box
+            const searchBox = document.getElementById('searchBox');
+            searchBox.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    applySearch();
+                }
+            });
+
+            // Add event listener for the units path link
+            const unitsPathLink = document.getElementById('unitsPathLink');
+            unitsPathLink.addEventListener('click', handleUnitsPathClick);
+
+            // Initialize the units path link
+            updateUnitsPathLink();
+
+            // Get initial path
+            fetch('/get-current-units-path')
+                .then(response => response.json())
+                .then(data => {
+                    currentUnitsPath = data.displayPath;
+                    updateUnitsPathLink();
+                })
+                .catch(error => console.error('Error getting initial path:', error));
         });
+
+        let currentUnitsPath = 'units'; // Initialize with default path
+
+        function updateUnitsPathLink() {
+            const link = document.getElementById('unitsPathLink');
+            link.textContent = currentUnitsPath || 'Select Path';
+        }
+
+        async function handleUnitsPathClick(event) {
+            event.preventDefault();
+            await selectFolder();
+        }
+
+        async function selectFolder() {
+            try {
+                const dirHandle = await window.showDirectoryPicker();
+                
+                const response = await fetch('/update-units-figures-path', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ folderName: dirHandle.name }),
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentUnitsPath = data.displayPath; // Update the current path with the new format
+                    updateUnitsPathLink();
+                    alert('units文件夹已更新');
+                    if (!data.hasJsonFiles) {
+                        alert('新文件夹中没有标签文件 (.json)');
+                        currentTagFile = null;
+                    }
+                    await fetchUnitLabels();
+                    allFolderNames = await fetch('/list-folder-names').then(res => res.json());
+                    await loadImages();
+                    populateDropdown();
+                    displayCurrentUnit();
+                } else {
+                    const errorData = await response.json();
+                    alert('更新失败: ' + errorData.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('选择文件夹时出错');
+            }
+        }
     </script>
 
 </body>

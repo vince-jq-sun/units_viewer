@@ -116,6 +116,8 @@ app.post('/update-units-figures-path', (req, res) => {
     const { folderName } = req.body;
     
     const newPath = path.join(__dirname, '..', folderName);
+    const parentPath = path.dirname(newPath);
+    const parentFolderName = path.basename(parentPath);
 
     console.log('New path:', newPath);
 
@@ -134,7 +136,9 @@ app.post('/update-units-figures-path', (req, res) => {
     res.json({ 
         success: true, 
         message: 'Path updated successfully',
-        hasJsonFiles: jsonFiles.length > 0
+        hasJsonFiles: jsonFiles.length > 0,
+        newPath: unitsPath,
+        displayPath: `../${parentFolderName}/${path.basename(newPath)}`
     });
 });
 
@@ -207,4 +211,11 @@ app.get('/units/:fileName', (req, res) => {
         }
         res.json(JSON.parse(data));
     });
+});
+
+app.get('/get-current-units-path', (req, res) => {
+    const parentPath = path.dirname(unitsPath);
+    const parentFolderName = path.basename(parentPath);
+    const displayPath = `../${parentFolderName}/${path.basename(unitsPath)}`;
+    res.json({ displayPath: displayPath });
 });
