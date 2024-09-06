@@ -115,13 +115,22 @@ app.post('/create-file', (req, res) => {
 app.post('/update-units-figures-path', (req, res) => {
     const { folderName } = req.body;
     
-    const newPath = path.join(__dirname, '..', folderName);
-    const parentPath = path.dirname(newPath);
-    const parentFolderName = path.basename(parentPath);
+    // Try different base paths
+    const possiblePaths = [
+        path.join(__dirname, '..', folderName),  // Original relative path
+        path.join(__dirname, folderName),        // Direct child of server directory
+        path.resolve(folderName)                 // Absolute path or relative to current working directory
+    ];
 
-    console.log('New path:', newPath);
+    let newPath = null;
+    for (const testPath of possiblePaths) {
+        if (fs.existsSync(testPath)) {
+            newPath = testPath;
+            break;
+        }
+    }
 
-    if (!fs.existsSync(newPath)) {
+    if (!newPath) {
         return res.status(400).json({ success: false, message: 'Selected folder does not exist' });
     }
 
@@ -133,12 +142,17 @@ app.post('/update-units-figures-path', (req, res) => {
     // Check if any JSON files exist in the new folder
     const jsonFiles = fs.readdirSync(newPath).filter(file => file.endsWith('.json'));
     
+    // Prepare the display path
+    const parentPath = path.dirname(newPath);
+    const parentFolderName = path.basename(parentPath);
+    const displayPath = `../${parentFolderName}/${path.basename(newPath)}`;
+
     res.json({ 
         success: true, 
         message: 'Path updated successfully',
         hasJsonFiles: jsonFiles.length > 0,
         newPath: unitsPath,
-        displayPath: `../${parentFolderName}/${path.basename(newPath)}`
+        displayPath: displayPath
     });
 });
 

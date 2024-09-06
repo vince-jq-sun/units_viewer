@@ -804,7 +804,7 @@ async function selectFolder() {
 
         if (response.ok) {
             const data = await response.json();
-            currentUnitsPath = data.displayPath; // Update the current path with the new format
+            currentUnitsPath = data.displayPath; // Use the displayPath from the server
             updateUnitsPathLink();
             alert('units文件夹已更新');
             if (!data.hasJsonFiles) {
