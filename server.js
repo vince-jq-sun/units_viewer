@@ -59,18 +59,46 @@ app.post('/update-last-used-tag-file', (req, res) => {
 });
 
 app.get('/units/:neuronId', (req, res) => {
-    const neuronDir = path.join(unitsPath, req.params.neuronId);
-    console.log('Accessing neuron directory:', neuronDir);
-    fs.readdir(neuronDir, (err, files) => {
+    const itemPath = path.join(unitsPath, req.params.neuronId);
+    console.log('Accessing path:', itemPath);
+
+    fs.stat(itemPath, (err, stats) => {
         if (err) {
-            console.error('Error reading neuron directory:', err);
-            return res.status(500).json({ error: 'Unable to scan directory' });
+            console.error('Error accessing path:', err);
+            return res.status(500).json({ error: 'Unable to access path' });
         }
-        console.log('Files in neuron directory:', files);
-        const imageFiles = files.filter(file => /\.(png|jpg|jpeg|gif)$/i.test(file));
-        imageFiles.sort();
-        console.log('Image files:', imageFiles);
-        res.json(imageFiles);
+
+        if (stats.isDirectory()) {
+            // Handle directory (neuron) case
+            fs.readdir(itemPath, (err, files) => {
+                if (err) {
+                    console.error('Error reading directory:', err);
+                    return res.status(500).json({ error: 'Unable to scan directory' });
+                }
+                console.log('Files in directory:', files);
+                const imageFiles = files.filter(file => /\.(png|jpg|jpeg|gif)$/i.test(file));
+                imageFiles.sort();
+                console.log('Image files:', imageFiles);
+                res.json(imageFiles);
+            });
+        } else if (stats.isFile() && path.extname(itemPath) === '.json') {
+            // Handle JSON file case
+            fs.readFile(itemPath, 'utf8', (err, data) => {
+                if (err) {
+                    console.error('Error reading JSON file:', err);
+                    return res.status(500).json({ error: 'Unable to read JSON file' });
+                }
+                try {
+                    const jsonData = JSON.parse(data);
+                    res.json(jsonData);
+                } catch (parseError) {
+                    console.error('Error parsing JSON:', parseError);
+                    res.status(500).json({ error: 'Error parsing JSON file' });
+                }
+            });
+        } else {
+            res.status(400).json({ error: 'Invalid path' });
+        }
     });
 });
 
@@ -90,14 +118,16 @@ app.post('/update_units_tags', (req, res) => {
 });
 
 app.get('/list-folder-names', (req, res) => {
-    listFolderNames()
-        .then(folderNames => {
-            res.json(folderNames);
-        })
-        .catch(error => {
-            console.error('Failed to list folders:', error);
-            res.status(500).send('Failed to retrieve folder names');
-        });
+    fs.readdir(unitsPath, { withFileTypes: true }, (err, dirents) => {
+        if (err) {
+            console.error('Failed to list folders:', err);
+            return res.status(500).json({ error: 'Failed to retrieve folder names' });
+        }
+        const folderNames = dirents
+            .filter(dirent => dirent.isDirectory())
+            .map(dirent => dirent.name);
+        res.json(folderNames);
+    });
 });
 
 app.post('/create-file', (req, res) => {
@@ -152,7 +182,8 @@ app.post('/update-units-figures-path', (req, res) => {
         message: 'Path updated successfully',
         hasJsonFiles: jsonFiles.length > 0,
         newPath: unitsPath,
-        displayPath: displayPath
+        displayPath: displayPath,
+        absolutePath: path.resolve(unitsPath)  // Add this line to send the absolute path
     });
 });
 
@@ -218,6 +249,9 @@ app.get('/get-last-used-tag-file', (req, res) => {
 
 app.get('/units/:fileName', (req, res) => {
     const filePath = path.join(tagsPath, req.params.fileName);
+    if (!filePath.endsWith('.json')) {
+        return res.status(400).json({ error: 'Invalid file type' });
+    }
     fs.readFile(filePath, 'utf8', (err, data) => {
         if (err) {
             console.error('Error reading file:', err);

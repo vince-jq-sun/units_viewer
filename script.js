@@ -137,9 +137,10 @@ async function selectFolder() {
         }
 
         const data = await response.json();
-        currentUnitsPath = data.displayPath; // Use the displayPath from the server
+        currentUnitsPath = data.displayPath;
         updateUnitsPathLink();
-        alert('units文件夹已更新');
+        console.log('Current directory for image folders:', data.absolutePath);  // Log the absolute path
+        alert(`units文件夹已更新到: ${data.absolutePath}`);  // Show the absolute path in the alert
 
         if (!data.hasJsonFiles) {
             alert('新文件夹中没有标签文件 (.json)');
@@ -255,21 +256,34 @@ async function fetchUnitLabels() {
     try {
         const response = await fetch(`/units/${currentTagFile}`);
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        neuronLabels = data;
-        console.log('Unit Labels Loaded:', neuronLabels);
-        resetActiveUnits();
+        if (typeof data === 'object' && !Array.isArray(data)) {
+            neuronLabels = data;
+            console.log('Unit Labels Loaded:', neuronLabels);
+        } else {
+            throw new Error('Invalid data format received');
+        }
+        
+        // Fetch folder names (neuron IDs) from the server
+        const folderResponse = await fetch('/list-folder-names');
+        if (!folderResponse.ok) {
+            throw new Error(`HTTP error! status: ${folderResponse.status}`);
+        }
+        const folderNames = await folderResponse.json();
+        
+        // Update activeUnits with folder names (neuron IDs)
+        activeUnits = folderNames;
+        
         createTagsDictionary();
         if (activeUnits.length > 0) {
             currentUnitId = activeUnits[0];
             currentUnitIndex = 0;
             displayCurrentUnit();
         } else {
-            console.error('No neurons found in the JSON data.');
-            alert('No neurons found in the selected file. Please choose a valid JSON file.');
+            console.error('No neurons found in the units directory.');
+            alert('No neurons (folders) found in the selected directory.');
         }
     } catch (error) {
         console.error('Error fetching neuron labels:', error);
@@ -287,8 +301,8 @@ function createTagsDictionary() {
     tagsDictionary = {}; // Reset the dictionary
     tagOccurrences = {}; // Reset the tag occurrences dictionary
 
-    for (const neuronId of Object.keys(activeUnitLabels)) { // Iterate over the active dataset
-        const labels = activeUnitLabels[neuronId];
+    for (const neuronId of Object.keys(neuronLabels)) {
+        const labels = neuronLabels[neuronId];
         for (const label of labels) {
             if (label.startsWith('%')) continue; // Skip labels that start with '%'
 
@@ -633,65 +647,31 @@ function adjustImageScale(value) {
     });
 }
 
-function displayUnitImages(neuronId) {
+async function loadImages() {
+    try {
+        const currentNeuronId = getCurrentNeuronId();
+        const response = await fetch(`/units/${currentNeuronId}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch images');
+        }
+        const imageFiles = await response.json();
+        displayImages(imageFiles, currentNeuronId);
+    } catch (error) {
+        console.error('Error loading images:', error);
+        alert('加载图像时出错');
+    }
+}
+
+function displayImages(imageFiles, neuronId) {
     const imageContainer = document.getElementById('image-container');
-    imageContainer.innerHTML = ''; // Clear the container
-
-    fetch(`/units/${neuronId}`)
-        .then(response => response.json())
-        .then(imageList => {
-            if (imageList.length === 0 && firstRun) {
-                // No images in the first neuron, set scaleFactor to 0.5
-                scaleFactor = scaleFactorDefault;
-                actualScaleFactor = scaleFactor * sliderScale;
-                firstRun = false; // Ensure this logic only runs on the first display
-                return; // No need to load images
-            }
-
-            let maxHeight = 0;
-
-            // Find the maximum height among the images
-            const loadPromises = imageList.map(imageName => {
-                return new Promise((resolve, reject) => {
-                    const img = new Image();
-                    img.src = `/units/${neuronId}/${imageName}`;
-                    img.alt = imageName;
-
-                    img.onload = function () {
-                        maxHeight = Math.max(maxHeight, img.naturalHeight);
-                        resolve(img);
-                    };
-
-                    img.onerror = reject; // Handle image load errors
-                });
-            });
-
-            // Once all images are loaded, calculate the scaleFactor and display images
-            Promise.all(loadPromises).then(images => {
-                if (firstRun) {
-                    const imageContainerHeight = imageContainer.clientHeight; // Get the height of the container without scrolling
-                    scaleFactor = (imageContainerHeight / maxHeight) * scaleFactorExtra;
-                    actualScaleFactor = scaleFactor * sliderScale;
-                    firstRun = false; // Ensure this logic only runs on the first display
-                }
-
-                images.forEach(img => {
-                    img.classList.add('scalable-image');
-                    img.style.width = `${img.naturalWidth * actualScaleFactor}px`;
-                    img.style.height = `${img.naturalHeight * actualScaleFactor}px`;
-
-                    const wrapper = document.createElement('div');
-                    wrapper.classList.add('image-wrapper');
-                    wrapper.appendChild(img);
-                    imageContainer.appendChild(wrapper);
-                });
-            }).catch(error => {
-                console.error('Error loading images:', error);
-            });
-        })
-        .catch(error => {
-            console.error('Error fetching image list:', error);
-        });
+    imageContainer.innerHTML = ''; // Clear existing images
+    imageFiles.forEach(file => {
+        const img = document.createElement('img');
+        img.src = `/units/${neuronId}/${file}`;
+        img.alt = file;
+        img.className = 'scalable-image';
+        imageContainer.appendChild(img);
+    });
 }
 
 function remapScale() {
@@ -752,6 +732,7 @@ function displayCurrentUnit() {
 
         // Display all tags, highlight current tags and apply tracking style
         const tags = sortedTags.map(tag => {
+            if (tag.startsWith('%')) return ''; // Skip notes
             const tagDisplay = `${tag} *${tagOccurrences[tag]}`;
             let tagClass = currentTagsAndNotes.includes(tag) ? 'highlighted-tag' : 'default-tag';
             if (trackingTags.includes(tag)) {
@@ -766,7 +747,7 @@ function displayCurrentUnit() {
         notes = currentTagsAndNotes.filter(tag => tag.startsWith('%')).map(note => note.substring(1)); // Remove '%' and add to notes array
         neuronNoteDisplay.innerHTML = notes.length ? `${notes.map(note => `<li>${note}</li>`).join('')}` : 'No notes available';
 
-        displayUnitImages(currentUnitId);
+        loadImages();
     } else {
         neuronIdDisplay.textContent = 'No Unit Selected';
         neuronTagDisplay.textContent = '';
@@ -784,19 +765,26 @@ function displayCurrentUnit() {
 
 
 function appendAllFolderNamesToNeuronLabels() {
+    if (!currentTagFile) {
+        alert('Please select a tag file first.');
+        return;
+    }
+
     let updated = false;
-    allFolderNames.forEach(folderName => {
+    activeUnits.forEach(folderName => {
         if (!neuronLabels[folderName]) {
             neuronLabels[folderName] = [];  // Initialize with an empty list if not exist
             updated = true;
         }
     });
 
-    console.log('All Folder Names:', allFolderNames);
+    console.log('All Folder Names:', activeUnits);
 
     if (updated) {
         updateJSON();  // Use existing function to update the server
-        window.location.reload();// refresh the window
+        alert('All folder names have been added to the current tag file.');
+    } else {
+        alert('No new folder names to add.');
     }
 }
 
@@ -847,9 +835,10 @@ async function selectFolder() {
         }
 
         const data = await response.json();
-        currentUnitsPath = data.displayPath; // Use the displayPath from the server
+        currentUnitsPath = data.displayPath;
         updateUnitsPathLink();
-        alert('units文件夹已更新');
+        console.log('Current directory for image folders:', data.absolutePath);  // Log the absolute path
+        alert(`units文件夹已更新到: ${data.absolutePath}`);  // Show the absolute path in the alert
 
         if (!data.hasJsonFiles) {
             alert('新文件夹中没有标签文件 (.json)');
@@ -865,33 +854,6 @@ async function selectFolder() {
         console.error('选择文件夹时出错:', err);
         alert('更新失败: ' + err.message);
     }
-}
-
-async function loadImages() {
-    try {
-        const currentNeuronId = getCurrentNeuronId();
-        const response = await fetch(`/units_figures/${currentNeuronId}`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch images');
-        }
-        const imageFiles = await response.json();
-        displayImages(imageFiles, currentNeuronId);
-    } catch (error) {
-        console.error('Error loading images:', error);
-        alert('加载图像时出错');
-    }
-}
-
-function displayImages(imageFiles, neuronId) {
-    const imageContainer = document.getElementById('image-container');
-    imageContainer.innerHTML = ''; // 清空现有图像
-    imageFiles.forEach(file => {
-        const img = document.createElement('img');
-        img.src = `/units_figures/${neuronId}/${file}`;
-        img.alt = file;
-        img.className = 'scalable-image';
-        imageContainer.appendChild(img);
-    });
 }
 
 function getCurrentNeuronId() {
