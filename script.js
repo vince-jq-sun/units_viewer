@@ -1,10 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize current tag file and set up key event listeners
     initializeCurrentTagFile();
-
-    // Add event listeners for keydown events
     document.addEventListener('keydown', handleKeyDown);
 
-    // Add event listener for Enter key in the search box
+    // Set up search box functionality
     const searchBox = document.getElementById('searchBox');
     searchBox.addEventListener('keydown', function(event) {
         if (event.key === 'Enter') {
@@ -12,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Add event listener for the units path link
+    // Set up units path link
     const unitsPathLink = document.getElementById('unitsPathLink');
     unitsPathLink.addEventListener('click', async (event) => {
         event.preventDefault();
@@ -30,57 +29,46 @@ document.addEventListener('DOMContentLoaded', () => {
             updateUnitsPathLink();
         })
         .catch(error => console.error('Error getting initial path:', error));
-});
 
-document.addEventListener('DOMContentLoaded', function() {
+    // Populate dropdown and fetch folder names
     populateDropdown();
-});
-
-document.addEventListener('DOMContentLoaded', function() {
     fetch('/list-folder-names')
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Failed to fetch folder names');
-        }
-        return response.json();  // Parse JSON data from the response
-    })
-    .then(folderNames => {
-        console.log('Received folder names:', folderNames);
-        // Do something with folderNames here, e.g., store them, display them, etc.
-        allFolderNames = folderNames;
-    })
-    .catch(error => {
-        console.error('Error fetching folder names:', error);
-    });
-});
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch folder names');
+            }
+            return response.json();
+        })
+        .then(folderNames => {
+            console.log('Received folder names:', folderNames);
+            allFolderNames = folderNames;
+        })
+        .catch(error => {
+            console.error('Error fetching folder names:', error);
+        });
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Set up the event listener for the Fill button to show the modal
+    // Set up FillAll functionality
     document.getElementById('fillButton').addEventListener('click', function() {
-        document.getElementById('fillModal').style.display = 'block';  // Show the modal
-        document.getElementById('tagFileName').textContent = currentTagFile;  // Set the current tag file name dynamically
+        document.getElementById('fillModal').style.display = 'block';
+        document.getElementById('tagFileName').textContent = currentTagFile;
     });
 
-    // Set up the event listener for the Confirm button
     document.getElementById('confirmFill').addEventListener('click', function() {
-        appendAllFolderNamesToNeuronLabels();  // Your function to append names, assume it's defined elsewhere
-        document.getElementById('fillModal').style.display = 'none';  // Hide the modal after confirming
+        appendAllFolderNamesToNeuronLabels();
+        document.getElementById('fillModal').style.display = 'none';
     });
 
-    // Set up the event listener for the Cancel button
     document.getElementById('cancelFill').addEventListener('click', function() {
-        document.getElementById('fillModal').style.display = 'none';  // Hide the modal when cancel is clicked
+        document.getElementById('fillModal').style.display = 'none';
     });
-});
 
-document.addEventListener('DOMContentLoaded', function() {
+    // Set up NewJS functionality
     document.getElementById('newButton').addEventListener('click', function() {
         document.getElementById('overlay').style.display = 'block';
         document.getElementById('newFileModal').style.display = 'block';
     });
 
     document.getElementById('confirmButton').addEventListener('click', function() {
-        // Your existing logic for what happens when the file name is confirmed
         createFile(document.getElementById('fileName').value);
         document.getElementById('overlay').style.display = 'none';
         document.getElementById('newFileModal').style.display = 'none';
@@ -91,7 +79,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('newFileModal').style.display = 'none';
     });
 });
-
 
 let neuronLabels = {}; // Original neuron labels data (from JSON)
 let activeUnitLabels = {}; // Filtered neuron labels
@@ -117,45 +104,6 @@ let currentUnitsPath = 'units'; // Initialize with default path
 function updateUnitsPathLink() {
     const link = document.getElementById('unitsPathLink');
     link.textContent = currentUnitsPath || 'Select Path';
-}
-
-async function selectFolder() {
-    try {
-        const dirHandle = await window.showDirectoryPicker();
-        
-        const response = await fetch('/update-units-figures-path', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ folderName: dirHandle.name }),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message);
-        }
-
-        const data = await response.json();
-        currentUnitsPath = data.displayPath;
-        updateUnitsPathLink();
-        console.log('Current directory for image folders:', data.absolutePath);  // Log the absolute path
-        alert(`units文件夹已更新到: ${data.absolutePath}`);  // Show the absolute path in the alert
-
-        if (!data.hasJsonFiles) {
-            alert('新文件夹中没有标签文件 (.json)');
-            currentTagFile = null;
-        }
-
-        await fetchUnitLabels();
-        allFolderNames = await fetch('/list-folder-names').then(res => res.json());
-        await loadImages();
-        populateDropdown();
-        displayCurrentUnit();
-    } catch (err) {
-        console.error('选择文件夹时出错:', err);
-        alert('更新失败: ' + err.message);
-    }
 }
 
 function listFolderNames() {
@@ -266,18 +214,8 @@ async function fetchUnitLabels() {
             throw new Error('Invalid data format received');
         }
         
-        // Get all neuron IDs from the tag file
-        const tagFileNeuronIds = Object.keys(neuronLabels);
-        
-        // Fetch folder names (neuron IDs) from the server
-        const folderResponse = await fetch('/list-folder-names');
-        if (!folderResponse.ok) {
-            throw new Error(`HTTP error! status: ${folderResponse.status}`);
-        }
-        const folderNames = await folderResponse.json();
-        
-        // Combine neuron IDs from tag file and folder names, removing duplicates
-        activeUnits = Array.from(new Set([...tagFileNeuronIds, ...folderNames]));
+        // Set activeUnits to be only the neuron IDs from the tag file
+        activeUnits = Object.keys(neuronLabels);
         
         createTagsDictionary();
         if (activeUnits.length > 0) {
@@ -285,8 +223,8 @@ async function fetchUnitLabels() {
             currentUnitIndex = 0;
             displayCurrentUnit();
         } else {
-            console.error('No neurons found in the tag file or units directory.');
-            alert('No neurons found in the tag file or units directory.');
+            console.error('No neurons found in the tag file.');
+            alert('No neurons found in the tag file.');
         }
     } catch (error) {
         console.error('Error fetching neuron labels:', error);
@@ -676,6 +614,11 @@ function displayImages(imageFiles, neuronId) {
         img.src = `/units/${neuronId}/${file}`;
         img.alt = file;
         img.className = 'scalable-image';
+        img.onload = function() {
+            // Apply the actualScaleFactor when the image loads
+            img.style.width = `${img.naturalWidth * actualScaleFactor}px`;
+            img.style.height = `${img.naturalHeight * actualScaleFactor}px`;
+        };
         imageContainer.appendChild(img);
     });
 }
@@ -791,27 +734,40 @@ async function displayCurrentUnit() {
 }
 
 
-function appendAllFolderNamesToNeuronLabels() {
+async function appendAllFolderNamesToNeuronLabels() {
     if (!currentTagFile) {
         alert('Please select a tag file first.');
         return;
     }
 
-    let updated = false;
-    activeUnits.forEach(folderName => {
-        if (!neuronLabels[folderName]) {
-            neuronLabels[folderName] = [];  // Initialize with an empty list if not exist
-            updated = true;
+    try {
+        // Fetch all folder names from the server
+        const response = await fetch('/list-folder-names');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-    });
+        const folderNames = await response.json();
 
-    console.log('All Folder Names:', activeUnits);
+        let updated = false;
+        folderNames.forEach(folderName => {
+            if (!neuronLabels[folderName]) {
+                neuronLabels[folderName] = [];  // Initialize with an empty list if not exist
+                updated = true;
+            }
+        });
 
-    if (updated) {
-        updateJSON();  // Use existing function to update the server
-        alert('All folder names have been added to the current tag file.');
-    } else {
-        alert('No new folder names to add.');
+        console.log('All Folder Names:', folderNames);
+
+        if (updated) {
+            await updateJSON();  // Use existing function to update the server
+            alert('All folder names have been added to the current tag file.');
+            await fetchUnitLabels();  // Reload the labels to update the UI
+        } else {
+            alert('No new folder names to add.');
+        }
+    } catch (error) {
+        console.error('Error appending folder names:', error);
+        alert(`Error appending folder names: ${error.message}`);
     }
 }
 
