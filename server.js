@@ -5,11 +5,13 @@ const cors = require('cors');
 const app = express();
 
 let basePath = __dirname;  // Default base path that can be updated
-let tagsPath = path.join(basePath, 'units_tags');
+let unitsPath = path.join(__dirname, 'units'); // Initialize unitsPath
+let tagsPath = unitsPath; // tagsPath is now the same as unitsPath
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(basePath));
+
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(basePath, 'index.html'));
@@ -17,9 +19,9 @@ app.get('/', (req, res) => {
 
 // Endpoint to list JSON files in the units_tags directory
 app.get('/json-files', (req, res) => {
-    fs.readdir(tagsPath, (err, files) => {
+    fs.readdir(unitsPath, (err, files) => {
         if (err) {
-            console.log(err);
+            console.error('Error reading directory:', err);
             return res.status(500).send('Error retrieving files');
         }
         // Filter for JSON files only
@@ -41,7 +43,7 @@ app.get('/last-used-tag-file', (req, res) => {
     });
 });
 
-// Endpoint to Update lastUsedTagFile
+// Replace the existing update-last-used-tag-file route
 app.post('/update-last-used-tag-file', (req, res) => {
     const logPath = path.join(basePath, 'log.json');
     const newTagFile = req.body.lastUsedTagFile;
@@ -56,14 +58,18 @@ app.post('/update-last-used-tag-file', (req, res) => {
     });
 });
 
-app.get('/units_figures/:neuronId', (req, res) => {
-    const neuronDir = path.join(basePath, 'units_figures', req.params.neuronId);
+app.get('/units/:neuronId', (req, res) => {
+    const neuronDir = path.join(unitsPath, req.params.neuronId);
+    console.log('Accessing neuron directory:', neuronDir);
     fs.readdir(neuronDir, (err, files) => {
         if (err) {
+            console.error('Error reading neuron directory:', err);
             return res.status(500).json({ error: 'Unable to scan directory' });
         }
+        console.log('Files in neuron directory:', files);
         const imageFiles = files.filter(file => /\.(png|jpg|jpeg|gif)$/i.test(file));
         imageFiles.sort();
+        console.log('Image files:', imageFiles);
         res.json(imageFiles);
     });
 });
@@ -106,21 +112,42 @@ app.post('/create-file', (req, res) => {
     });
 });
 
+app.post('/update-units-figures-path', (req, res) => {
+    const { folderName } = req.body;
+    
+    const newPath = path.join(__dirname, '..', folderName);
+
+    console.log('New path:', newPath);
+
+    if (!fs.existsSync(newPath)) {
+        return res.status(400).json({ success: false, message: 'Selected folder does not exist' });
+    }
+
+    unitsPath = newPath;
+    tagsPath = newPath;
+
+    console.log('Updated units and tags path:', unitsPath);
+
+    // Check if any JSON files exist in the new folder
+    const jsonFiles = fs.readdirSync(newPath).filter(file => file.endsWith('.json'));
+    
+    res.json({ 
+        success: true, 
+        message: 'Path updated successfully',
+        hasJsonFiles: jsonFiles.length > 0
+    });
+});
+
 app.listen(2024, () => {
     console.log('Server is running on http://localhost:2024');
-    import('open').then(open => {
-        open.default('http://localhost:2024').catch(error => {
-            console.error('Failed to open browser:', error);
-        });
-    });
+    console.log('Current basePath:', basePath);
+    console.log('Current unitsPath:', unitsPath);
+    console.log('Current tagsPath:', tagsPath);
 });
 
 function listFolderNames() {
     return new Promise((resolve, reject) => {
-        const fs = require('fs');
-        const figuresPath = path.join(__dirname, 'units_figures');
-
-        fs.readdir(figuresPath, { withFileTypes: true }, (err, files) => {
+        fs.readdir(unitsPath, { withFileTypes: true }, (err, files) => {
             if (err) {
                 console.error('Failed to list folders:', err);
                 reject(err);
@@ -133,3 +160,51 @@ function listFolderNames() {
         });
     });
 }
+
+function getCurrentNeuronId() {
+    return currentUnitId;
+}
+
+
+// Add this new route after your existing routes
+app.get('/units/:neuronId/:imageName', (req, res) => {
+    const imagePath = path.join(unitsPath, req.params.neuronId, req.params.imageName);
+    res.sendFile(imagePath, (err) => {
+        if (err) {
+            console.error('Error sending image:', err);
+            res.status(404).send('Image not found');
+        }
+    });
+});
+
+// Replace the existing get-last-used-tag-file route
+app.get('/get-last-used-tag-file', (req, res) => {
+    const logPath = path.join(basePath, 'log.json');
+    fs.readFile(logPath, 'utf8', (err, data) => {
+        if (err) {
+            if (err.code === 'ENOENT') {
+                return res.json({ lastUsedTagFile: null });
+            }
+            console.error('Error reading log.json:', err);
+            return res.status(500).json({ error: 'Failed to read log.json' });
+        }
+        try {
+            const logData = JSON.parse(data);
+            res.json({ lastUsedTagFile: logData.lastUsedTagFile });
+        } catch (parseError) {
+            console.error('Error parsing log.json:', parseError);
+            res.status(500).json({ error: 'Failed to parse log.json' });
+        }
+    });
+});
+
+app.get('/units/:fileName', (req, res) => {
+    const filePath = path.join(tagsPath, req.params.fileName);
+    fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error reading file:', err);
+            return res.status(404).send('File not found');
+        }
+        res.json(JSON.parse(data));
+    });
+});

@@ -70,7 +70,7 @@
             font-weight: bold;
             font-size: medium;
             margin-bottom: 20px; /* Add space below the neuron ID */
-            margin-left: -5px;
+            margin-left: 0px;
             padding: 8px;
         }
         #neuronTagDisplay {
@@ -90,7 +90,7 @@
             padding-left: 15px;
         }
         #search-container{
-            margin-top: 15px; /* Add space above the search box */
+            margin-top: 7px; /* Add space above the search box */
             margin-left: 4px;
             margin-bottom: 10px;
             display: flex; /* Align the search box and button in a row */
@@ -104,7 +104,7 @@
         }
         #slider-container {
             margin-top: 10px; /* Add space above the search box */
-            margin-left: 4px;
+            margin-left: 6px;
             display: flex; /* Align the search box and button in a row */
             flex-direction: row;
             align-items: center; /* Vertically center the button with the search box */
@@ -121,6 +121,7 @@
             box-sizing: border-box; /* Includes padding in the height calculation */
             height:90px; /* Sets the height to fill the parent container */
             border: 1px solid #ccc; /* Optional: adds a border for better visibility */
+            margin-left: 2px;
         }
         #searchButton {
             margin-left: 8px; /* Add some space between the search box and the button */
@@ -195,20 +196,28 @@
             margin-left: 4px;
             margin-bottom: 0px;
         }
+        #unit-switch {
+            margin-top: 10px;
+            margin-left: 0px;
+            margin-bottom: 0px;
+            padding: 6px 7px;
+        }
         .tall-button {
             margin-left: 4px;
             margin-bottom: 0px;
             padding: 6px 7px;
             cursor: pointer;
         }
-        .short-button-switch-1 {
-            margin-left: 6px;
-            padding: 4px 7px;
+        #button-switch-1 {
+            margin-left: 0px;
+            margin-bottom: 0px;
+            padding: 4px 14px;
             cursor: pointer;
         }
-        .short-button-switch-2 {
+        #button-switch-2 {
             margin-left: 4px;
-            padding: 4px 7px;
+            margin-bottom: 0px;
+            padding: 4px 14px;
             cursor: pointer;
         }
         .short-button-tag-1 {
@@ -237,19 +246,13 @@
         #tagFileDropdown {
             flex-grow: 1;
             padding: 5px;
-            margin-left: 12px;
-            padding-left: 4px;
+            margin-left: 0px;
             box-sizing: border-box;
             font-size: small;
         }
-        #tag-file-switch {
-            display: flex; /* Enables flexbox */
-            align-items: center; /* Centers the items vertically */
-            margin-top: 8px; /* Space above the container */
-        }
         #load-button {
             margin-left: 6px; /* Add space between the dropdown and the button */
-            padding: 5px 6px ;
+            padding: 5px 8px ;
             cursor: pointer; /* Change cursor to pointer on hover */
         }
         #resizer {
@@ -280,16 +283,32 @@
             background-color: rgba(0,0,0,0.5);
             z-index: 1;
         }
+        #tag-file-switch {
+            display: flex; /* Enables flexbox */
+            align-items: center; /* Centers the items vertically */
+            margin-left: 6px;
+            margin-right: 0px;
+            margin-top: 0px;
+        }
         #tag-file-build {
             display: flex;
             align-items: center;
-            margin: 40px 4px;
-            gap:10px;
+            margin: 10px 0px 0px 6px; /* top right bottom left */
         }
-        #newButton, #fillButton {
-            padding: 3px 10px;
+        #newButton{
+            padding: 4px 5px;
             cursor: pointer;
-            margin-right: 10px;
+            margin-left: 10px;
+        }
+        #fillButton {
+            padding: 4px 5px;
+            cursor: pointer;
+            margin-left: 3px;
+        }
+        #selectFolderBtn {
+            padding: 4px 5px;
+            cursor: pointer;
+            margin-left: 10px;
         }
         .title-with-version {
             display: flex;
@@ -297,7 +316,7 @@
             text-align: left;
             margin-top: auto; /* Push this section to the bottom */
             padding-top: 10px;
-            padding-bottom: 20px; /* Add padding at the bottom */
+            padding-bottom: 10px; /* Add padding at the bottom */
         }
         .title-with-version h2 {
             font-size: medium;
@@ -348,14 +367,40 @@
             <span class="release-version">v1.0</span>
             <span onclick="openHelpPage()" class="help-link">Help</span>
         </div>
+
         <div class="section">
-            <span id="neuronIdDisplay"></span>       
             <div id="tag-file-switch">
-                <button class="short-button-switch-1" onclick="switchToPreviousUnit()">&#x2191;</button>
-                <button class="short-button-switch-2" onclick="switchToNextUnit()">&#x2193;</button>
                 <select id="tagFileDropdown"></select>
                 <button id="load-button" onclick="loadSelectedTagFile()">Load</button>
             </div>
+
+            <div id="tag-file-build">
+                <button id="button-switch-1" onclick="switchToPreviousUnit()">&larr;</button>
+                <button id="button-switch-2" onclick="switchToNextUnit()">&rarr;</button>
+
+                <div style="display: flex;">
+                    <button id="newButton" style="flex-grow: 1;">NewJS</button>
+                    <button id="fillButton" style="flex-grow: 1;">FillAll</button>
+                    <button id="selectFolderBtn" style="flex-grow: 1;">UPath</button>
+                </div>
+                <div id="overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:100;"></div>
+                <div id="newFileModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background-color:white; padding:20px; border-radius:5px; box-shadow:0 4px 8px rgba(0,0,0,0.2); z-index:101;">
+                    <input type="text" id="fileName" placeholder="Enter file name">
+                    <button id="confirmButton">Confirm</button>
+                    <button id="cancelNewButton">Cancel</button>
+                </div>
+                <div id="fillModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:300px; background-color:white; padding:20px; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.2);">
+                    <p>Are you sure you want to append all existing unit folders names in `units_figures` to the current tag file - <span id="tagFileName"></span>?</p>
+                    <div style="text-align:right;">
+                        <button id="cancelFill" style="margin-right:10px;">Cancel</button>
+                        <button id="confirmFill">Confirm</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <span id="neuronIdDisplay"></span>       
 
             <div id="search-container">
                 <textarea id="searchBox" placeholder="Enter tags / IDs('xxx') / notes(%xxx)"></textarea>
@@ -376,7 +421,6 @@
                 <ol id="neuronNoteDisplay" ></ol>
             </div>
         </div>
-        
         <div class="section">
             <!-- <div class="section-title">
                 Scale Adjust
@@ -385,28 +429,6 @@
                 <input type="range" id="scaleSlider" min="0" max="1" step="0.01" value="0.5" oninput="adjustImageScale(this.value)">
                 <span id="scaleValue">1.0</span>
                 <button id="reScaleButton" onclick="remapScale()">Reset</button>                
-            </div>
-        </div>
-
-        <div class="section">
-            <div id="tag-file-build">
-                <div style="display: flex;">
-                    <button id="newButton" style="flex-grow: 1;">New Tag File</button>
-                    <button id="fillButton" style="flex-grow: 1;">Fill All</button>
-                </div>
-                <div id="overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:100;"></div>
-                <div id="newFileModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background-color:white; padding:20px; border-radius:5px; box-shadow:0 4px 8px rgba(0,0,0,0.2); z-index:101;">
-                    <input type="text" id="fileName" placeholder="Enter file name">
-                    <button id="confirmButton">Confirm</button>
-                    <button id="cancelNewButton">Cancel</button>
-                </div>
-                <div id="fillModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:300px; background-color:white; padding:20px; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.2);">
-                    <p>Are you sure you want to append all existing unit folders names in `units_figures` to the current tag file - <span id="tagFileName"></span>?</p>
-                    <div style="text-align:right;">
-                        <button id="cancelFill" style="margin-right:10px;">Cancel</button>
-                        <button id="confirmFill">Confirm</button>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -444,6 +466,11 @@
             document.removeEventListener('mousemove', resizePanel);
             document.removeEventListener('mouseup', stopResize);
         }
+
+        // 确保在页面加载完成后添加事件监听器
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('selectFolderBtn').addEventListener('click', selectFolder);
+        });
     </script>
 
 </body>

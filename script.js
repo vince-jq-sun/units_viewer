@@ -14,14 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Existing code...
-
-    // Event listener for the Help button
-    document.getElementById('helpButton').addEventListener('click', toggleHelpPopup);
-});
-
-
 document.addEventListener('DOMContentLoaded', function() {
     populateDropdown();
 });
@@ -106,7 +98,7 @@ let trackingTags = [];
 function listFolderNames() {
     const fs = require('fs');
     const path = require('path');
-    const figuresPath = path.join(__dirname, 'units_figures');
+    const figuresPath = path.join(__dirname, 'units');
 
     fs.readdir(figuresPath, { withFileTypes: true }, (err, files) => {
         if (err) {
@@ -140,9 +132,7 @@ function updateLastUsedTagFile(fileName) {
     })
     .then(response => {
         if (!response.ok) {
-            return response.text().then(text => {
-                throw new Error(`Failed to update log.json on the server. Status: ${response.status}, Message: ${text}`);
-            });
+            throw new Error('Failed to update log.json on the server');
         }
         console.log('log.json updated successfully');
     })
@@ -153,27 +143,13 @@ function updateLastUsedTagFile(fileName) {
 
 
 function initializeCurrentTagFile() {
-    let filesList = [];
-
-    fetch('/json-files')  // Fetch available JSON files
+    fetch('/get-last-used-tag-file')
         .then(response => response.json())
-        .then(files => {
-            filesList = files;  // Store files list for later use
-            return fetch('/last-used-tag-file');  // Fetch last used tag file
-        })
-        .then(response => response.json())
-        .then(lastUsedTagFile => {
-            if (filesList.includes(lastUsedTagFile)) {
-                currentTagFile = lastUsedTagFile;
-            } else {
-                currentTagFile = filesList[0]; // Default to first file if not valid
-                updateLastUsedTagFile(currentTagFile);  // Update log.json with the new default
-            }
-            return currentTagFile;
-        })
-        .then(() => {
-            populateDropdown();  // Populate dropdown after currentTagFile is set
-            fetchUnitLabels();  // Fetch unit labels after currentTagFile is set
+        .then(data => {
+            currentTagFile = data.lastUsedTagFile || 'tags_1.json';
+            console.log('Current tag file:', currentTagFile);
+            populateDropdown();
+            fetchUnitLabels();
         })
         .catch(error => console.error('Error initializing current tag file:', error));
 }
@@ -184,13 +160,21 @@ function populateDropdown() {
         .then(files => {
             const dropdown = document.getElementById('tagFileDropdown');
             dropdown.innerHTML = '';  // Clear existing options
-            files.forEach(file => {
+            if (files.length === 0) {
                 const option = document.createElement('option');
-                option.value = file;
-                option.text = file;
+                option.text = 'No tag files available';
                 dropdown.appendChild(option);
-            });
-            dropdown.value = currentTagFile;  // Ensure the currentTagFile is selected in the dropdown
+                dropdown.disabled = true;
+            } else {
+                files.forEach(file => {
+                    const option = document.createElement('option');
+                    option.value = file;
+                    option.text = file;
+                    dropdown.appendChild(option);
+                });
+                dropdown.disabled = false;
+            }
+            dropdown.value = currentTagFile || '';
         })
         .catch(error => console.error('Failed to load JSON files:', error));
 }
@@ -205,42 +189,32 @@ function openHelpPage() {
     window.open('https://github.com/vince-jq-sun/units_viewer/blob/main/README.md', '_blank');
 }
 
-function fetchUnitLabels() {
-    // Ensure currentTagFile is not empty and contains the expected path if needed
-    if (!currentTagFile) {
-        console.error('No current tag file set.');
-        return;
+async function fetchUnitLabels() {
+    try {
+        const response = await fetch(`/units/${currentTagFile}`);
+        if (!response.ok) {
+            throw new Error(`Network response was not ok ${response.statusText}`);
+        }
+        const data = await response.json();
+        neuronLabels = data;
+        console.log('Unit Labels Loaded:', neuronLabels);
+        resetActiveUnits();
+        createTagsDictionary();
+        if (activeUnits.length > 0) {
+            currentUnitId = activeUnits[0];
+            currentUnitIndex = 0;
+            displayCurrentUnit();
+        } else {
+            console.error('No neurons found in the JSON data.');
+        }
+    } catch (error) {
+        console.error('Error fetching neuron labels:', error);
     }
-
-    fetch(`units_tags/${currentTagFile}`) // Use currentTagFile to fetch the right file
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            neuronLabels = data;
-            neurons = Object.keys(neuronLabels);
-            console.log('Unit Labels Loaded:', neurons); // Debugging: list all neuron IDs
-            resetActiveUnits(); // Initialize active neurons to all neurons
-            if (activeUnits.length > 0) {
-                currentUnitId = activeUnits[0]; // Assign the first neuron as the current neuron
-                currentUnitIndex = 0;
-                createTagsDictionary(); // Create the tags dictionary
-                displayCurrentUnit();
-            } else {
-                console.error('No neurons found in the JSON data.');
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching neuron labels:', error);
-        });
 }
 
 function resetActiveUnits() {
     activeUnitLabels = { ...neuronLabels }; // Clone the original neuron labels
-    activeUnits = neurons.slice(); // Clone the neuron IDs array
+    activeUnits = Object.keys(neuronLabels); // Clone the neuron IDs array
     createTagsDictionary(); // Ensure the tags dictionary is created for full dataset
 }
 
@@ -598,7 +572,7 @@ function displayUnitImages(neuronId) {
     const imageContainer = document.getElementById('image-container');
     imageContainer.innerHTML = ''; // Clear the container
 
-    fetch(`/units_figures/${neuronId}`)
+    fetch(`/units/${neuronId}`)
         .then(response => response.json())
         .then(imageList => {
             if (imageList.length === 0 && firstRun) {
@@ -615,7 +589,7 @@ function displayUnitImages(neuronId) {
             const loadPromises = imageList.map(imageName => {
                 return new Promise((resolve, reject) => {
                     const img = new Image();
-                    img.src = `/units_figures/${neuronId}/${imageName}`;
+                    img.src = `/units/${neuronId}/${imageName}`;
                     img.alt = imageName;
 
                     img.onload = function () {
@@ -702,9 +676,9 @@ function displayCurrentUnit() {
     const neuronTagDisplay = document.getElementById('neuronTagDisplay');
     const neuronNoteDisplay = document.getElementById('neuronNoteDisplay'); // Element for displaying notes
 
-    document.getElementById('tagFileDropdown').value = currentTagFile;
+    document.getElementById('tagFileDropdown').value = currentTagFile || '';
 
-    if (currentUnitId) {
+    if (currentUnitId && activeUnits.length > 0) {
         const indexInfo = `(${currentUnitIndex + 1}/${activeUnits.length})`;
         neuronIdDisplay.textContent = `${currentUnitId} ${indexInfo}`;
 
@@ -725,7 +699,6 @@ function displayCurrentUnit() {
 
         // Independently process and display notes
         notes = currentTagsAndNotes.filter(tag => tag.startsWith('%')).map(note => note.substring(1)); // Remove '%' and add to notes array
-        const neuronNoteDisplay = document.getElementById('neuronNoteDisplay');
         neuronNoteDisplay.innerHTML = notes.length ? `${notes.map(note => `<li>${note}</li>`).join('')}` : 'No notes available';
 
         displayUnitImages(currentUnitId);
@@ -734,6 +707,13 @@ function displayCurrentUnit() {
         neuronTagDisplay.textContent = '';
         neuronNoteDisplay.textContent = ''; // Clear the notes display
         document.getElementById('image-container').innerHTML = ''; // Clear the image container if no neuron is selected
+
+        // If there are units but none is selected, select the first one
+        if (activeUnits.length > 0) {
+            currentUnitId = activeUnits[0];
+            currentUnitIndex = 0;
+            displayCurrentUnit(); // Recursive call to display the first unit
+        }
     }
 }
 
@@ -777,9 +757,79 @@ function createFile(fileName) {
         updateLastUsedTagFile(fullFileName);  // Update the log file with the new file name
     })
     .then(() => {
-        window.location.reload();  // Reload the page to reflect the new file
+        populateDropdown();  // Refresh the dropdown after creating a new file
     })
     .catch(error => {
         console.error('Error creating file:', error);
     });
 }
+
+async function selectFolder() {
+    try {
+        const dirHandle = await window.showDirectoryPicker();
+        
+        const response = await fetch('/update-units-figures-path', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ folderName: dirHandle.name }),
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            alert('units文件夹已更新');
+            if (!data.hasJsonFiles) {
+                alert('新文件夹中没有标签文件 (.json)');
+                currentTagFile = null;
+            }
+            await fetchUnitLabels(); // This will now handle the case when currentTagFile is null
+            allFolderNames = await fetch('/list-folder-names').then(res => res.json());
+            await loadImages(); // Load images from the new folder
+            populateDropdown(); // Update the dropdown with new JSON files
+            displayCurrentUnit(); // Update the display
+        } else {
+            const errorData = await response.json();
+            alert('更新失败: ' + errorData.message);
+        }
+    } catch (err) {
+        console.error(err);
+        alert('选择文件夹时出错');
+    }
+}
+
+async function loadImages() {
+    try {
+        const currentNeuronId = getCurrentNeuronId();
+        const response = await fetch(`/units_figures/${currentNeuronId}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch images');
+        }
+        const imageFiles = await response.json();
+        displayImages(imageFiles, currentNeuronId);
+    } catch (error) {
+        console.error('Error loading images:', error);
+        alert('加载图像时出错');
+    }
+}
+
+function displayImages(imageFiles, neuronId) {
+    const imageContainer = document.getElementById('image-container');
+    imageContainer.innerHTML = ''; // 清空现有图像
+    imageFiles.forEach(file => {
+        const img = document.createElement('img');
+        img.src = `/units_figures/${neuronId}/${file}`;
+        img.alt = file;
+        img.className = 'scalable-image';
+        imageContainer.appendChild(img);
+    });
+}
+
+function getCurrentNeuronId() {
+    return currentUnitId;
+}
+
+// 确保在页面加载完成后添加事件监听器
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('selectFolderBtn').addEventListener('click', selectFolder);
+});
