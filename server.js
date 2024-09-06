@@ -64,6 +64,9 @@ app.get('/units/:neuronId', (req, res) => {
 
     fs.stat(itemPath, (err, stats) => {
         if (err) {
+            if (err.code === 'ENOENT') {
+                return res.status(404).json({ error: 'Folder not found' });
+            }
             console.error('Error accessing path:', err);
             return res.status(500).json({ error: 'Unable to access path' });
         }
@@ -79,7 +82,7 @@ app.get('/units/:neuronId', (req, res) => {
                 const imageFiles = files.filter(file => /\.(png|jpg|jpeg|gif)$/i.test(file));
                 imageFiles.sort();
                 console.log('Image files:', imageFiles);
-                res.json(imageFiles);
+                res.json({ exists: true, images: imageFiles });
             });
         } else if (stats.isFile() && path.extname(itemPath) === '.json') {
             // Handle JSON file case

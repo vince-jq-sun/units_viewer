@@ -266,6 +266,9 @@ async function fetchUnitLabels() {
             throw new Error('Invalid data format received');
         }
         
+        // Get all neuron IDs from the tag file
+        const tagFileNeuronIds = Object.keys(neuronLabels);
+        
         // Fetch folder names (neuron IDs) from the server
         const folderResponse = await fetch('/list-folder-names');
         if (!folderResponse.ok) {
@@ -273,8 +276,8 @@ async function fetchUnitLabels() {
         }
         const folderNames = await folderResponse.json();
         
-        // Update activeUnits with folder names (neuron IDs)
-        activeUnits = folderNames;
+        // Combine neuron IDs from tag file and folder names, removing duplicates
+        activeUnits = Array.from(new Set([...tagFileNeuronIds, ...folderNames]));
         
         createTagsDictionary();
         if (activeUnits.length > 0) {
@@ -282,8 +285,8 @@ async function fetchUnitLabels() {
             currentUnitIndex = 0;
             displayCurrentUnit();
         } else {
-            console.error('No neurons found in the units directory.');
-            alert('No neurons (folders) found in the selected directory.');
+            console.error('No neurons found in the tag file or units directory.');
+            alert('No neurons found in the tag file or units directory.');
         }
     } catch (error) {
         console.error('Error fetching neuron labels:', error);
@@ -652,13 +655,16 @@ async function loadImages() {
         const currentNeuronId = getCurrentNeuronId();
         const response = await fetch(`/units/${currentNeuronId}`);
         if (!response.ok) {
+            if (response.status === 404) {
+                return { exists: false, images: [] }; // Folder doesn't exist
+            }
             throw new Error('Failed to fetch images');
         }
-        const imageFiles = await response.json();
-        displayImages(imageFiles, currentNeuronId);
+        const data = await response.json();
+        return { exists: true, images: data.images };
     } catch (error) {
         console.error('Error loading images:', error);
-        alert('加载图像时出错');
+        return { exists: true, images: [] }; // Assume folder exists but there's an error
     }
 }
 
@@ -716,16 +722,31 @@ function applyTracking() {
     displayCurrentUnit(); // Update the display to apply the tracking styles
 }
 
-function displayCurrentUnit() {
+async function displayCurrentUnit() {
     const neuronIdDisplay = document.getElementById('neuronIdDisplay');
     const neuronTagDisplay = document.getElementById('neuronTagDisplay');
-    const neuronNoteDisplay = document.getElementById('neuronNoteDisplay'); // Element for displaying notes
+    const neuronNoteDisplay = document.getElementById('neuronNoteDisplay');
+    const imageContainer = document.getElementById('image-container');
 
     document.getElementById('tagFileDropdown').value = currentTagFile || '';
 
     if (currentUnitId && activeUnits.length > 0) {
         const indexInfo = `(${currentUnitIndex + 1}/${activeUnits.length})`;
-        neuronIdDisplay.textContent = `${currentUnitId} ${indexInfo}`;
+        
+        // Load images and check folder status
+        const { exists, images } = await loadImages();
+        
+        // Set the neuron ID display with appropriate styling
+        if (exists && images.length > 0) {
+            neuronIdDisplay.textContent = `${currentUnitId} ${indexInfo}`;
+            neuronIdDisplay.style.color = ''; // Reset to default color
+        } else if (exists && images.length === 0) {
+            neuronIdDisplay.textContent = `${currentUnitId} ${indexInfo}: no imgs`;
+            neuronIdDisplay.style.color = 'gray';
+        } else {
+            neuronIdDisplay.textContent = `${currentUnitId} ${indexInfo}: no folder`;
+            neuronIdDisplay.style.color = 'gray';
+        }
 
         const currentTagsAndNotes = neuronLabels[currentUnitId] || [];
         const sortedTags = Object.keys(tagOccurrences).sort((a, b) => tagOccurrences[b] - tagOccurrences[a]);
@@ -736,23 +757,29 @@ function displayCurrentUnit() {
             const tagDisplay = `${tag} *${tagOccurrences[tag]}`;
             let tagClass = currentTagsAndNotes.includes(tag) ? 'highlighted-tag' : 'default-tag';
             if (trackingTags.includes(tag)) {
-                tagClass += ' tracking-tag'; // Add the tracking-tag class for underline
+                tagClass += ' tracking-tag';
             }
             return `<span class="${tagClass}">${tagDisplay}</span>`;
-        }).filter(tag => tag); // Remove undefined entries (from notes)
+        }).filter(tag => tag);
 
         neuronTagDisplay.innerHTML = tags.join(' ');
 
         // Independently process and display notes
-        notes = currentTagsAndNotes.filter(tag => tag.startsWith('%')).map(note => note.substring(1)); // Remove '%' and add to notes array
+        const notes = currentTagsAndNotes.filter(tag => tag.startsWith('%')).map(note => note.substring(1));
         neuronNoteDisplay.innerHTML = notes.length ? `${notes.map(note => `<li>${note}</li>`).join('')}` : 'No notes available';
 
-        loadImages();
+        // Display images or clear the container
+        if (exists && images.length > 0) {
+            displayImages(images, currentUnitId);
+        } else {
+            imageContainer.innerHTML = ''; // Clear the image container
+        }
     } else {
         neuronIdDisplay.textContent = 'No Unit Selected';
+        neuronIdDisplay.style.color = ''; // Reset to default color
         neuronTagDisplay.textContent = '';
-        neuronNoteDisplay.textContent = ''; // Clear the notes display
-        document.getElementById('image-container').innerHTML = ''; // Clear the image container if no neuron is selected
+        neuronNoteDisplay.textContent = '';
+        imageContainer.innerHTML = '';
 
         // If there are units but none is selected, select the first one
         if (activeUnits.length > 0) {
