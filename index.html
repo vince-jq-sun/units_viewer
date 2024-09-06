@@ -287,7 +287,7 @@
             display: flex; /* Enables flexbox */
             align-items: center; /* Centers the items vertically */
             margin-left: 6px;
-            margin-right: 0px;
+            margin-right: 10px;
             margin-top: 6px;
         }
         #tag-file-build {
@@ -389,7 +389,7 @@
             </div>
             <div id="tag-file-switch">
                 <select id="tagFileDropdown"></select>
-                <button id="load-button" onclick="loadSelectedTagFile()">Load</button>
+                <!-- <button id="load-button" onclick="loadSelectedTagFile()">Load</button> -->
             </div>
 
             <div id="tag-file-build">
@@ -453,37 +453,6 @@
 
     <script src="script.js"></script>
     <script>
-        const resizer = document.getElementById('resizer');
-        const controlPanel = document.getElementById('control-panel');
-        const imageContainer = document.getElementById('image-container');
-        let startX, startWidth, initialOffset;
-    
-        resizer.addEventListener('mousedown', function(e) {
-            e.preventDefault(); // Prevent default actions such as text selection
-            startX = e.clientX;
-            startWidth = parseInt(document.defaultView.getComputedStyle(controlPanel).width, 10);
-            initialOffset = startX - controlPanel.getBoundingClientRect().right; // Capture the offset from the initial click to the panel's right edge
-    
- 
-            document.addEventListener('mousemove', resizePanel);
-            document.addEventListener('mouseup', stopResize);
-        });
-    
-        function resizePanel(e) {
-            // Adjust the width calculation by incorporating the initialOffset
-            const newWidth = startWidth + (startX - e.clientX) - initialOffset;
-
-            if (newWidth > 300) { // Ensuring the width does not go below a minimum width
-                controlPanel.style.width = `${newWidth}px`;
-                imageContainer.style.width = `calc(100% - ${newWidth}px)`;
-            }
-        }
-    
-        function stopResize() {
-            document.removeEventListener('mousemove', resizePanel);
-            document.removeEventListener('mouseup', stopResize);
-        }
-
         // 确保在页面加载完成后添加事件监听器
         document.addEventListener('DOMContentLoaded', () => {
             initializeCurrentTagFile();
