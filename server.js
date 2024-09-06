@@ -221,9 +221,18 @@ app.get('/units/:fileName', (req, res) => {
     fs.readFile(filePath, 'utf8', (err, data) => {
         if (err) {
             console.error('Error reading file:', err);
-            return res.status(404).send('File not found');
+            if (err.code === 'ENOENT') {
+                return res.status(404).json({ error: 'File not found' });
+            }
+            return res.status(500).json({ error: 'Error reading file' });
         }
-        res.json(JSON.parse(data));
+        try {
+            const jsonData = JSON.parse(data);
+            res.json(jsonData);
+        } catch (parseError) {
+            console.error('Error parsing JSON:', parseError);
+            res.status(500).json({ error: 'Error parsing JSON file' });
+        }
     });
 });
 

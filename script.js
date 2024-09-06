@@ -14,7 +14,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add event listener for the units path link
     const unitsPathLink = document.getElementById('unitsPathLink');
-    unitsPathLink.addEventListener('click', handleUnitsPathClick);
+    unitsPathLink.addEventListener('click', async (event) => {
+        event.preventDefault();
+        await selectFolder();
+    });
 
     // Initialize the units path link
     updateUnitsPathLink();
@@ -116,9 +119,42 @@ function updateUnitsPathLink() {
     link.textContent = currentUnitsPath || 'Select Path';
 }
 
-async function handleUnitsPathClick(event) {
-    event.preventDefault();
-    await selectFolder();
+async function selectFolder() {
+    try {
+        const dirHandle = await window.showDirectoryPicker();
+        
+        const response = await fetch('/update-units-figures-path', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ folderName: dirHandle.name }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message);
+        }
+
+        const data = await response.json();
+        currentUnitsPath = data.displayPath; // Use the displayPath from the server
+        updateUnitsPathLink();
+        alert('units文件夹已更新');
+
+        if (!data.hasJsonFiles) {
+            alert('新文件夹中没有标签文件 (.json)');
+            currentTagFile = null;
+        }
+
+        await fetchUnitLabels();
+        allFolderNames = await fetch('/list-folder-names').then(res => res.json());
+        await loadImages();
+        populateDropdown();
+        displayCurrentUnit();
+    } catch (err) {
+        console.error('选择文件夹时出错:', err);
+        alert('更新失败: ' + err.message);
+    }
 }
 
 function listFolderNames() {
@@ -219,7 +255,8 @@ async function fetchUnitLabels() {
     try {
         const response = await fetch(`/units/${currentTagFile}`);
         if (!response.ok) {
-            throw new Error(`Network response was not ok ${response.statusText}`);
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
         neuronLabels = data;
@@ -232,9 +269,11 @@ async function fetchUnitLabels() {
             displayCurrentUnit();
         } else {
             console.error('No neurons found in the JSON data.');
+            alert('No neurons found in the selected file. Please choose a valid JSON file.');
         }
     } catch (error) {
         console.error('Error fetching neuron labels:', error);
+        alert(`Error loading neuron labels: ${error.message}`);
     }
 }
 
@@ -547,7 +586,7 @@ function updateActiveUnitLabels() {
 function updateJSON() {
     console.log('Sending updated data to server:', JSON.stringify(neuronLabels, null, 2)); // Log the data being sent
 
-    fetch('http://localhost:2024/update_units_tags', {
+    fetch('/update_units_tags', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -802,27 +841,29 @@ async function selectFolder() {
             body: JSON.stringify({ folderName: dirHandle.name }),
         });
 
-        if (response.ok) {
-            const data = await response.json();
-            currentUnitsPath = data.displayPath; // Use the displayPath from the server
-            updateUnitsPathLink();
-            alert('units文件夹已更新');
-            if (!data.hasJsonFiles) {
-                alert('新文件夹中没有标签文件 (.json)');
-                currentTagFile = null;
-            }
-            await fetchUnitLabels();
-            allFolderNames = await fetch('/list-folder-names').then(res => res.json());
-            await loadImages();
-            populateDropdown();
-            displayCurrentUnit();
-        } else {
+        if (!response.ok) {
             const errorData = await response.json();
-            alert('更新失败: ' + errorData.message);
+            throw new Error(errorData.message);
         }
+
+        const data = await response.json();
+        currentUnitsPath = data.displayPath; // Use the displayPath from the server
+        updateUnitsPathLink();
+        alert('units文件夹已更新');
+
+        if (!data.hasJsonFiles) {
+            alert('新文件夹中没有标签文件 (.json)');
+            currentTagFile = null;
+        }
+
+        await fetchUnitLabels();
+        allFolderNames = await fetch('/list-folder-names').then(res => res.json());
+        await loadImages();
+        populateDropdown();
+        displayCurrentUnit();
     } catch (err) {
-        console.error(err);
-        alert('选择文件夹时出错');
+        console.error('选择文件夹时出错:', err);
+        alert('更新失败: ' + err.message);
     }
 }
 

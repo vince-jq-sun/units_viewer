@@ -528,41 +528,6 @@
             await selectFolder();
         }
 
-        async function selectFolder() {
-            try {
-                const dirHandle = await window.showDirectoryPicker();
-                
-                const response = await fetch('/update-units-figures-path', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ folderName: dirHandle.name }),
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    currentUnitsPath = data.displayPath; // Update the current path with the new format
-                    updateUnitsPathLink();
-                    alert('units文件夹已更新');
-                    if (!data.hasJsonFiles) {
-                        alert('新文件夹中没有标签文件 (.json)');
-                        currentTagFile = null;
-                    }
-                    await fetchUnitLabels();
-                    allFolderNames = await fetch('/list-folder-names').then(res => res.json());
-                    await loadImages();
-                    populateDropdown();
-                    displayCurrentUnit();
-                } else {
-                    const errorData = await response.json();
-                    alert('更新失败: ' + errorData.message);
-                }
-            } catch (err) {
-                console.error(err);
-                alert('选择文件夹时出错');
-            }
-        }
     </script>
 
 </body>
