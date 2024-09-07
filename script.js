@@ -141,6 +141,7 @@ let allFolderNames = [];
 let notes = [];
 let trackingTags = [];
 let currentUnitsPath = 'units'; // Initialize with default path
+let currentColumns = 4; // Default to 3 columns
 
 function updateUnitsPathLink() {
     const link = document.getElementById('unitsPathLink');
@@ -637,6 +638,8 @@ function adjustImageScale(value) {
         img.style.width = `${img.naturalWidth * actualScaleFactor}px`;
         img.style.height = `${img.naturalHeight * actualScaleFactor}px`;
     });
+
+    applySimpleMasonry();
 }
 
 async function loadImages() {
@@ -657,20 +660,121 @@ async function loadImages() {
     }
 }
 
+
+function adjustColumns(value) {
+    currentColumns = parseInt(value);
+    console.log(`Adjusting columns to ${currentColumns}`);
+    document.getElementById('columnValue').textContent = `${currentColumns} column${currentColumns > 1 ? 's' : ''}`;
+    
+    const masonryItems = document.querySelectorAll('.masonry-item');
+    masonryItems.forEach((item) => {
+        item.style.width = `calc(${100 / currentColumns}% - 1px)`;
+    });
+
+    initializeMasonry();
+}
+
+function initializeMasonry() {
+    const masonryWrapper = document.querySelector('.masonry-wrapper');
+    if (masonryWrapper) {
+        console.log('Initializing Masonry');
+        if (masonryInstance) {
+            masonryInstance.destroy();
+        }
+        masonryInstance = new Masonry(masonryWrapper, {
+            itemSelector: '.masonry-item',
+            columnWidth: '.masonry-item',
+            percentPosition: true,
+            gutter: 1,
+            transitionDuration: '0.2s'
+        });
+    } else {
+        console.log('Masonry wrapper not found');
+    }
+}
+
 function displayImages(imageFiles, neuronId) {
+    console.log(`Displaying images for neuron ${neuronId}, currentColumns: ${currentColumns}`);
     const imageContainer = document.getElementById('image-container');
     imageContainer.innerHTML = ''; // Clear existing images
-    imageFiles.forEach(file => {
-        const img = document.createElement('img');
+
+    const masonryWrapper = document.createElement('div');
+    masonryWrapper.className = 'masonry-wrapper';
+    imageContainer.appendChild(masonryWrapper);
+
+    imageFiles.forEach((file, index) => {
+        const imgWrapper = document.createElement('div');
+        imgWrapper.className = 'masonry-item';
+        imgWrapper.style.width = `calc(${100 / currentColumns}% - 1px)`;
+        
+        const img = new Image();
         img.src = `/units/${neuronId}/${file}`;
         img.alt = file;
         img.className = 'scalable-image';
-        img.onload = function() {
-            // Apply the actualScaleFactor when the image loads
-            img.style.width = `${img.naturalWidth * actualScaleFactor}px`;
-            img.style.height = `${img.naturalHeight * actualScaleFactor}px`;
-        };
-        imageContainer.appendChild(img);
+        
+        imgWrapper.appendChild(img);
+        masonryWrapper.appendChild(imgWrapper);
+        
+        console.log(`Added image ${index + 1}, width: ${imgWrapper.style.width}`);
+    });
+
+    // Use imagesLoaded to ensure all images are loaded before initializing Masonry
+    imagesLoaded(masonryWrapper, function() {
+        console.log(`All images loaded, total: ${imageFiles.length}`);
+        initializeMasonry();
+    });
+}
+
+// Event listener for the new column slider
+document.getElementById('columnSlider').addEventListener('input', function() {
+    adjustColumns(this.value);
+});
+
+// Initialize the column layout on page load
+document.addEventListener('DOMContentLoaded', function() {
+    adjustColumns(currentColumns); // Start with 3 columns
+    
+    // If images are already loaded, apply the layout
+    const masonryWrapper = document.querySelector('.masonry-wrapper');
+    if (masonryWrapper) {
+        if (typeof imagesLoaded === 'function') {
+            imagesLoaded(masonryWrapper, function() {
+                applyMasonryLayout();
+            });
+        } else {
+            applyMasonryLayout();
+        }
+    }
+});
+
+// Reapply layout on window resize
+window.addEventListener('resize', applyMasonryLayout);
+
+
+function applyMasonryLayout() {
+    const masonryWrapper = document.querySelector('.masonry-wrapper');
+    if (masonryWrapper) {
+        // Force a reflow
+        masonryWrapper.offsetHeight;
+
+        new Masonry(masonryWrapper, {
+            itemSelector: '.masonry-item',
+            columnWidth: `.masonry-item`,
+            percentPosition: true,
+            gutter: 1, // Add a small gutter
+            fitWidth: true, // This helps with centering the layout
+            transitionDuration: '0.2s'
+        });
+    }
+}
+
+function initMasonry() {
+    const masonryWrapper = document.querySelector('.masonry-wrapper');
+    new Masonry(masonryWrapper, {
+        itemSelector: '.masonry-item',
+        columnWidth: '.masonry-item',
+        percentPosition: true,
+        transitionDuration: 0
     });
 }
 
@@ -705,6 +809,8 @@ function remapScale() {
         img.style.width = `${img.naturalWidth * actualScaleFactor}px`;
         img.style.height = `${img.naturalHeight * actualScaleFactor}px`;
     });
+
+    initMasonry();
 }
 
 
