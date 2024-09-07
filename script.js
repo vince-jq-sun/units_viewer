@@ -99,7 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('confirmButton').addEventListener('click', function() {
-        createFile(document.getElementById('fileName').value);
+        const newFileName = document.getElementById('fileName').value;
+        createFile(newFileName);
         document.getElementById('overlay').style.display = 'none';
         document.getElementById('newFileModal').style.display = 'none';
     });
@@ -263,13 +264,23 @@ async function fetchUnitLabels() {
             currentUnitIndex = 0;
             displayCurrentUnit();
         } else {
-            console.error('No neurons found in the tag file.');
-            alert('No neurons found in the tag file.');
+            console.log('No units available in the selected tag file.');
+            displayEmptyState();
         }
     } catch (error) {
         console.error('Error fetching neuron labels:', error);
         alert(`Error loading neuron labels: ${error.message}`);
+        displayEmptyState();
     }
+}
+
+function displayEmptyState() {
+    currentUnitId = null;
+    currentUnitIndex = -1;
+    document.getElementById('neuronIdDisplay').textContent = 'No units available';
+    document.getElementById('neuronTagDisplay').textContent = '';
+    document.getElementById('neuronNoteDisplay').textContent = '';
+    document.getElementById('image-container').innerHTML = '';
 }
 
 function resetActiveUnits() {
@@ -704,7 +715,6 @@ function applyTracking() {
 
     displayCurrentUnit(); // Update the display to apply the tracking styles
 }
-
 async function displayCurrentUnit() {
     const neuronIdDisplay = document.getElementById('neuronIdDisplay');
     const neuronTagDisplay = document.getElementById('neuronTagDisplay');
@@ -736,20 +746,18 @@ async function displayCurrentUnit() {
 
         // Display all tags, highlight current tags and apply tracking style
         const tags = sortedTags.map(tag => {
-            if (tag.startsWith('%')) return ''; // Skip notes
-            const tagDisplay = `${tag} *${tagOccurrences[tag]}`;
-            let tagClass = currentTagsAndNotes.includes(tag) ? 'highlighted-tag' : 'default-tag';
-            if (trackingTags.includes(tag)) {
-                tagClass += ' tracking-tag';
-            }
-            return `<span class="${tagClass}">${tagDisplay}</span>`;
-        }).filter(tag => tag);
+            const isCurrentTag = currentTagsAndNotes.includes(tag);
+            const isTrackedTag = trackingTags.includes(tag);
+            let style = isCurrentTag ? 'font-weight: bold;' : '';
+            style += isTrackedTag ? 'background-color: yellow;' : '';
+            return `<span style="${style}">${tag}${isCurrentTag ? '*' : ''}</span>`;
+        }).join(', ');
 
-        neuronTagDisplay.innerHTML = tags.join(' ');
+        neuronTagDisplay.innerHTML = tags;
 
-        // Independently process and display notes
-        const notes = currentTagsAndNotes.filter(tag => tag.startsWith('%')).map(note => note.substring(1));
-        neuronNoteDisplay.innerHTML = notes.length ? `${notes.map(note => `<li>${note}</li>`).join('')}` : 'No notes available';
+        // Display notes
+        const notes = currentTagsAndNotes.filter(item => item.startsWith('%')).map((note, index) => `%${index + 1}: ${note.substring(1)}`);
+        neuronNoteDisplay.textContent = notes.join('\n');
 
         // Display images or clear the container
         if (exists && images.length > 0) {
@@ -758,21 +766,9 @@ async function displayCurrentUnit() {
             imageContainer.innerHTML = ''; // Clear the image container
         }
     } else {
-        neuronIdDisplay.textContent = 'No Unit Selected';
-        neuronIdDisplay.style.color = ''; // Reset to default color
-        neuronTagDisplay.textContent = '';
-        neuronNoteDisplay.textContent = '';
-        imageContainer.innerHTML = '';
-
-        // If there are units but none is selected, select the first one
-        if (activeUnits.length > 0) {
-            currentUnitId = activeUnits[0];
-            currentUnitIndex = 0;
-            displayCurrentUnit(); // Recursive call to display the first unit
-        }
+        displayEmptyState();
     }
 }
-
 
 async function appendAllFolderNamesToNeuronLabels() {
     if (!currentTagFile) {
@@ -812,34 +808,41 @@ async function appendAllFolderNamesToNeuronLabels() {
 }
 
 function createFile(fileName) {
-    const fullFileName = fileName + '.json';
+    const fullFileName = fileName.endsWith('.json') ? fileName : `${fileName}.json`;
     fetch('/create-file', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ fileName: fullFileName })
+        body: JSON.stringify({ fileName: fullFileName }),
     })
     .then(response => {
         if (!response.ok) {
-            return response.text().then(text => {
-                throw new Error(`Failed to create file on the server. Status: ${response.status}, Message: ${text}`);
-            });
+            throw new Error('Network response was not ok');
         }
         return response.json();
     })
     .then(data => {
         console.log('File created:', data);
         updateLastUsedTagFile(fullFileName);  // Update the log file with the new file name
+        return fullFileName;  // Return the new file name
     })
-    .then(() => {
+    .then(newFileName => {
         populateDropdown();  // Refresh the dropdown after creating a new file
+        setCurrentTagFile(newFileName);  // Set the new file as the current selection
+        location.reload(); //refresh the browser
     })
     .catch(error => {
         console.error('Error creating file:', error);
     });
 }
 
+function setCurrentTagFile(fileName) {
+    currentTagFile = fileName;
+    const dropdown = document.getElementById('tagFileDropdown');
+    dropdown.value = fileName;
+    fetchUnitLabels();  // Load the labels for the new file
+}
 async function selectFolder() {
     try {
         const dirHandle = await window.showDirectoryPicker();

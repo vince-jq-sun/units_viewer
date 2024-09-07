@@ -90,11 +90,8 @@
             padding-left: 15px;
         }
         #search-container{
-            margin-top: 7px; /* Add space above the search box */
-            margin-left: 4px;
-            margin-bottom: 10px;
+            margin: 7px 12px 4px 4px; /* top right bottom left */
             display: flex; /* Align the search box and button in a row */
-            flex-direction: row;
             align-items: flex-start;
         }
         #tag-note-container {
@@ -109,33 +106,23 @@
             flex-direction: row;
             align-items: center; /* Vertically center the button with the search box */
         }
-        #tag-button-container {
-            display: flex; /* Align the tag buttons in a row */
-            margin-left: 6px; /* Add space between the search box and the tag buttons */
-            margin-top: 4px;
-            padding: 10px;
-        }
         #searchBox {
             flex: 1; /* Allows the search box to take up the remaining space */
             padding: 10px; /* Corrected syntax: no space between number and unit */
             box-sizing: border-box; /* Includes padding in the height calculation */
-            height:90px; /* Sets the height to fill the parent container */
+            height:60px; /* Sets the height to fill the parent container */
             border: 1px solid #ccc; /* Optional: adds a border for better visibility */
             margin-left: 2px;
         }
         #searchButton {
-            margin-left: 8px; /* Add some space between the search box and the button */
-            margin-bottom: 6px;
-            padding: 3px 9px;
-            height: 100%; /* Make the button height equal to the search box height */
+            margin-left: 6px; /* Add some space between the search box and the button */
+            height: 30px; width:55px; 
             box-sizing: border-box;
             cursor: pointer; /* Change cursor to pointer on hover */
         }
         #trackButton {
-            margin-left: 8px; /* Add some space between the search box and the button */
-            margin-bottom: 6px;
-            padding: 3px 7px;
-            height: 100%; /* Make the button height equal to the search box height */
+            margin-left: 2px; /* Add some space between the search box and the button */
+            height: 30px; width:55px; 
             box-sizing: border-box;
             cursor: pointer; /* Change cursor to pointer on hover */
         }
@@ -211,24 +198,25 @@
         #button-switch-1 {
             margin-left: 0px;
             margin-bottom: 0px;
-            padding: 4px 14px;
+            width: 45px; height: 30px;
             cursor: pointer;
         }
         #button-switch-2 {
-            margin-left: 4px;
+            margin-left: 2px;
             margin-bottom: 0px;
-            padding: 4px 14px;
+            width: 45px; height: 30px;
             cursor: pointer;
         }
-        .short-button-tag-1 {
-            margin-left: 8px;
-            margin-right: 0px;
-            padding: 4px 6px;
+        #button-tag-add {
+            margin-left: 6px;
+            margin-bottom: 0px;
+            width: 45px; height: 30px;
             cursor: pointer;
         }
-        .short-button-tag-2 {
-            margin-left: 0px;
-            padding: 4px 7px;
+        #button-tag-subtract {
+            margin-left: 2px;
+            margin-bottom: 0px;
+            width: 45px; height: 30px;
             cursor: pointer;
         }     
         #addAllButton {
@@ -244,16 +232,12 @@
             cursor: pointer; /* Change cursor to pointer on hover */
         }
         #tagFileDropdown {
-            flex-grow: 1;
-            padding: 5px;
-            margin-left: 0px;
+            flex: 1;
+            padding: 6px;
+            margin: 0px 10px 0px 0px;
             box-sizing: border-box;
+            width: 94%;
             font-size: small;
-        }
-        #load-button {
-            margin-left: 6px; /* Add space between the dropdown and the button */
-            padding: 5px 8px ;
-            cursor: pointer; /* Change cursor to pointer on hover */
         }
         #resizer {
             width: 5px;
@@ -284,26 +268,30 @@
             z-index: 1;
         }
         #tag-file-switch {
-            display: flex; /* Enables flexbox */
-            align-items: center; /* Centers the items vertically */
-            margin-left: 6px;
-            margin-right: 10px;
-            margin-top: 6px;
+            flex: 1;
+            width: 100%;
+            align-items: center;
+            margin: 8px 10px 0px 6px; /* top right bottom left */
         }
         #tag-file-build {
-            display: flex;
+            flex:1 ;
             align-items: center;
-            margin: 10px 0px 0px 6px; /* top right bottom left */
+            margin: 10px 10px 0px 6px; /* top right bottom left */
+        }
+        #tag-button-container {
+            flex:1 ;
+            align-items: center;
+            margin: 10px 10px 15px 6px; /* top right bottom left */
         }
         #newButton{
-            padding: 4px 5px;
+            height: 30px; width:55px; 
             cursor: pointer;
-            margin-left: 10px;
+            margin-left: 6px;
         }
         #fillButton {
-            padding: 4px 5px;
+            height: 30px; width:55px; 
             cursor: pointer;
-            margin-left: 3px;
+            margin-left: 2px;
         }
         #unitsPathContainer {
             margin-left: 6px;
@@ -393,12 +381,12 @@
             </div>
 
             <div id="tag-file-build">
-                <button id="button-switch-1" onclick="switchToPreviousUnit()">&larr;</button>
-                <button id="button-switch-2" onclick="switchToNextUnit()">&rarr;</button>
-
-                <div style="display: flex; flex-wrap: wrap;">
-                    <button id="newButton" style="flex: 1 0 auto;">NewJS</button>
-                    <button id="fillButton" style="flex: 1 0 auto;">FillAll</button>
+                <div id="tag-file-build-buttons">
+                    <button id="button-switch-1" onclick="switchToPreviousUnit()">&larr;</button>
+                    <button id="button-switch-2" onclick="switchToNextUnit()">&rarr;</button>
+    
+                    <button id="newButton">NewJS</button>
+                    <button id="fillButton">FillAll</button>
                 </div>
                 <div id="overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:100;"></div>
                 <div id="newFileModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background-color:white; padding:20px; border-radius:5px; box-shadow:0 4px 8px rgba(0,0,0,0.2); z-index:101;">
@@ -421,17 +409,16 @@
 
             <div id="search-container">
                 <textarea id="searchBox" placeholder="Enter tags / IDs('xxx') / notes(%xxx)"></textarea>
-                <div class="tag-button-container">
-                    <button id="searchButton" onclick="applySearch()">Filter</button>
-                    <div class="tag-search-button-container">
-                        <button id="trackButton" onclick="applyTracking()">Track</button>
-                    </div>
-                    <div class="tag-edit-button-container">
-                        <button class="short-button-tag-1" onclick="addTag()">+</button>
-                        <button class="short-button-tag-2" onclick="removeTagOrNote()">-</button>
-                    </div>
-                </div>
             </div>
+            <div class="tag-button-container">
+                <button id="button-tag-add" onclick="addTag()">+</button>
+                <button id="button-tag-subtract" onclick="removeTagOrNote()">-</button>
+
+                <button id="searchButton" onclick="applySearch()">Filter</button>
+                <button id="trackButton" onclick="applyTracking()">Track</button>
+            </div>
+        </div>
+        <div class="section">
             <div class="tag-note-container">
                 <span id="neuronTagDisplay"></span></p>
                 <hr class="thin-gray-line">
