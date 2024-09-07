@@ -445,7 +445,7 @@
                 <button id="button-tag-subtract" onclick="removeTagOrNote()">-</button>
 
                 <button id="searchButton" onclick="applySearch()">Filter</button>
-                <button id="trackButton" onclick="applyTracking()">Track</button>
+                <button id="trackButton" onclick="applyTracking()"></button>
             </div>
         </div>
         <div class="section">
@@ -469,7 +469,9 @@
     </div>
 
     <script src="script.js"></script>
+    <script src="https://unpkg.com/masonry-layout@4/dist/masonry.pkgd.min.js"></script>
     <script>
+        
         // 确保在页面加载完成后添加事件监听器
         document.addEventListener('DOMContentLoaded', () => {
             initializeCurrentTagFile();
