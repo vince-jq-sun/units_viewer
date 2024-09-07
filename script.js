@@ -715,6 +715,7 @@ function applyTracking() {
 
     displayCurrentUnit(); // Update the display to apply the tracking styles
 }
+
 async function displayCurrentUnit() {
     const neuronIdDisplay = document.getElementById('neuronIdDisplay');
     const neuronTagDisplay = document.getElementById('neuronTagDisplay');
@@ -746,18 +747,20 @@ async function displayCurrentUnit() {
 
         // Display all tags, highlight current tags and apply tracking style
         const tags = sortedTags.map(tag => {
-            const isCurrentTag = currentTagsAndNotes.includes(tag);
-            const isTrackedTag = trackingTags.includes(tag);
-            let style = isCurrentTag ? 'font-weight: bold;' : '';
-            style += isTrackedTag ? 'background-color: yellow;' : '';
-            return `<span style="${style}">${tag}${isCurrentTag ? '*' : ''}</span>`;
-        }).join(', ');
+            if (tag.startsWith('%')) return ''; // Skip notes
+            const tagDisplay = `${tag} *${tagOccurrences[tag]}`;
+            let tagClass = currentTagsAndNotes.includes(tag) ? 'highlighted-tag' : 'default-tag';
+            if (trackingTags.includes(tag)) {
+                tagClass += ' tracking-tag';
+            }
+            return `<span class="${tagClass}">${tagDisplay}</span>`;
+        }).filter(tag => tag);
 
-        neuronTagDisplay.innerHTML = tags;
+        neuronTagDisplay.innerHTML = tags.join(' ');
 
-        // Display notes
-        const notes = currentTagsAndNotes.filter(item => item.startsWith('%')).map((note, index) => `%${index + 1}: ${note.substring(1)}`);
-        neuronNoteDisplay.textContent = notes.join('\n');
+        // Independently process and display notes
+        const notes = currentTagsAndNotes.filter(tag => tag.startsWith('%')).map(note => note.substring(1));
+        neuronNoteDisplay.innerHTML = notes.length ? `${notes.map(note => `<li>${note}</li>`).join('')}` : 'No notes available';
 
         // Display images or clear the container
         if (exists && images.length > 0) {
@@ -766,9 +769,21 @@ async function displayCurrentUnit() {
             imageContainer.innerHTML = ''; // Clear the image container
         }
     } else {
-        displayEmptyState();
+        neuronIdDisplay.textContent = 'No Unit Selected';
+        neuronIdDisplay.style.color = ''; // Reset to default color
+        neuronTagDisplay.textContent = '';
+        neuronNoteDisplay.textContent = '';
+        imageContainer.innerHTML = '';
+
+        // If there are units but none is selected, select the first one
+        if (activeUnits.length > 0) {
+            currentUnitId = activeUnits[0];
+            currentUnitIndex = 0;
+            displayCurrentUnit(); // Recursive call to display the first unit
+        }
     }
 }
+
 
 async function appendAllFolderNamesToNeuronLabels() {
     if (!currentTagFile) {
