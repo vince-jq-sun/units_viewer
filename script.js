@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedTagFile !== currentTagFile) {
             currentTagFile = selectedTagFile;
             fetchUnitLabels();
-            updateLastUsedTagFile(currentTagFile);
+            updateLastUsedTagFile();
         }
     });
 });
@@ -170,18 +170,21 @@ function loadSelectedTagFile() {
     const dropdown = document.getElementById('tagFileDropdown');
     currentTagFile = dropdown.value;  // Update the global currentTagFile variable
     console.log('New tag file loaded:', currentTagFile);  // Optional: log the loaded file for debugging
-    updateLastUsedTagFile(currentTagFile);  // Update the server with the new last used file
+    updateLastUsedTagFile();  // Update the server with the new last used file
     fetchUnitLabels();  // Re-fetch the unit labels and update display
     window.location.reload();// reload current window
 }
 
-function updateLastUsedTagFile(fileName) {
-    fetch('/update-last-used-tag-file', {
+function updateLastUsedTagFile() {
+    fetch('/update-log-file', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ lastUsedTagFile: fileName })
+        body: JSON.stringify({ 
+            lastUsedTagFile: currentTagFile,
+            lastUsedUnitsPath: currentUnitsPath // Add this line to include the currentUnitsPath
+        })
     })
     .then(response => {
         if (!response.ok) {
@@ -943,11 +946,6 @@ function createFile(fileName) {
         }
         return response.json();
     })
-    .then(data => {
-        console.log('File created:', data);
-        updateLastUsedTagFile(fullFileName);  // Update the log file with the new file name
-        return fullFileName;  // Return the new file name
-    })
     .then(newFileName => {
         populateDropdown();  // Refresh the dropdown after creating a new file
         setCurrentTagFile(newFileName);  // Set the new file as the current selection
@@ -964,16 +962,18 @@ function setCurrentTagFile(fileName) {
     dropdown.value = fileName;
     fetchUnitLabels();  // Load the labels for the new file
 }
+
 async function selectFolder() {
     try {
         const dirHandle = await window.showDirectoryPicker();
+        const folderPath = dirHandle.name;
         
         const response = await fetch('/update-units-figures-path', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ folderName: dirHandle.name }),
+            body: JSON.stringify({ folderName: folderPath }),
         });
 
         if (!response.ok) {
@@ -982,12 +982,27 @@ async function selectFolder() {
         }
 
         const data = await response.json();
-        currentUnitsPath = data.displayPath;
+        currentUnitsPath = data.absolutePath;
         updateUnitsPathLink();
-        console.log('Current directory for image folders:', data.absolutePath);  // Log the absolute path
-        alert(`units文件夹已更新到: ${data.absolutePath}`);  // Show the absolute path in the alert
+        console.log('Current directory for image folders:', data.absolutePath);
+        alert(`units文件夹已更新到: ${data.absolutePath}`);
 
-        if (!data.hasJsonFiles) {
+        if (data.hasJsonFiles) {
+            // Fetch the list of JSON files in the new folder
+            const jsonFilesResponse = await fetch('/json-files');
+            const jsonFiles = await jsonFilesResponse.json();
+            
+            if (jsonFiles.length > 0) {
+                // Set the first JSON file as the current tag file
+                currentTagFile = jsonFiles[0];
+                updateLastUsedTagFile();
+                console.log('Set current tag file to:', currentTagFile);
+                alert(`已自动选择标签文件: ${currentTagFile}`);
+            } else {
+                alert('新文件夹中没有标签文件 (.json)');
+                currentTagFile = null;
+            }
+        } else {
             alert('新文件夹中没有标签文件 (.json)');
             currentTagFile = null;
         }

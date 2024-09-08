@@ -5,7 +5,9 @@ const cors = require('cors');
 const app = express();
 
 let basePath = __dirname;  // Default base path that can be updated
-let unitsPath = path.join(__dirname, 'units'); // Initialize unitsPath
+// let unitsPath = path.join(__dirname, 'units'); // Initialize unitsPath
+let unitsPath = "/Users/vince/Documents/units_figures_loadtest_2"; // Absolute path
+
 let tagsPath = unitsPath; // tagsPath is now the same as unitsPath
 
 app.use(cors());
@@ -43,19 +45,30 @@ app.get('/last-used-tag-file', (req, res) => {
     });
 });
 
-// Replace the existing update-last-used-tag-file route
-app.post('/update-last-used-tag-file', (req, res) => {
-    const logPath = path.join(basePath, 'log.json');
-    const newTagFile = req.body.lastUsedTagFile;
-    const logData = { lastUsedTagFile: newTagFile };
 
-    fs.writeFile(logPath, JSON.stringify(logData, null, 2), 'utf8', (err) => {
+app.post('/update-log-file', (req, res) => {
+    const { lastUsedTagFile, lastUsedUnitsPath } = req.body;
+
+    if (!lastUsedTagFile || !lastUsedUnitsPath) {
+        return res.status(400).send('Missing required fields');
+    }
+
+    const logData = {
+        lastUsedTagFile,
+        lastUsedUnitsPath
+    };
+
+    fs.writeFile('log.json', JSON.stringify(logData, null, 2), (err) => {
         if (err) {
-            console.error('Error writing log.json:', err);
+            console.error('Error writing to log.json:', err);
             return res.status(500).send('Failed to update log.json');
         }
         res.send('log.json updated successfully');
     });
+});
+
+app.listen(3000, () => {
+    console.log('Server is running on port 2024');
 });
 
 app.get('/units/:neuronId', (req, res) => {
@@ -274,8 +287,5 @@ app.get('/units/:fileName', (req, res) => {
 });
 
 app.get('/get-current-units-path', (req, res) => {
-    const parentPath = path.dirname(unitsPath);
-    const parentFolderName = path.basename(parentPath);
-    const displayPath = `../${parentFolderName}/${path.basename(unitsPath)}`;
-    res.json({ displayPath: displayPath });
+    res.json({ displayPath: unitsPath });
 });
