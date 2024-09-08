@@ -1,14 +1,13 @@
 ## Introduction
 
-Units Viewer is a tool tailored for researchers working with datasets composed of multiple units, such as neurons. It is ideal for handling large datasets, offering streamlined navigation through figures, easy tagging, and flexible filtering options. This tool allows you to build better intuition through efficient and organized inpection of each unit.
-
-facilitates the building of intuition by allowing efficient and organized inspection of each unit.
+Units Viewer is a tool tailored for researchers working with datasets composed of multiple units, such as neurons. Idealy, it works best for hundreds to thousands of units. It makes figure navigation, tagging, filtering and notes easy and engaging. By directly viewing various plots and filtering the ones that are most relevant, it helps build better intuition.
 
 ## Features
 
+- Very easy to use.
 - View detailed profiles of individual neurons.
 - Customizable tags and notes for every unit.
-- Flexible filtering based on tags to streamline the inspection process.
+- Flexible filtering and tracking of tags to streamline the inspection process.
 - Easy navigation through large datasets.
 - Local web-based interface for easy access.
 
@@ -24,32 +23,44 @@ This project is built with Node.js. Before starting, ensure that Node.js is inst
 1. Clone the repository or download the `units_viewer` folder to your local machine.
 2. Open your terminal and navigate to the project directory.
 3. Run `npm install` to install all required dependencies.
-4. Replace folders inside `./units_figures` with your own. Figures are organized by subfolders named with unit IDs. Try to use comparable sizes for all the plots.
-5. Optionally, place your custom `tags.json` file in `./units_tags`. This file should be a JSON-formatted dictionary where keys are unit IDs, and values are lists of tags or notes (notes prefixed by `%`).
+4. Prepare a 'units' folder (name does not matter) anywhere in your computer. Organize your figures within this folder by subfolders named with unit IDs. 
+5. It's recommended to also place your custom `tags.json` file (name does not matter) in 'units' folder. So, you can have basic tags to start with, for example, units' anatomical locations or types. This is optional.
 
-## Usage
 
 ### Starting the Viewer
 
 1. Ensure that the images are correctly placed in their respective folders.
-2. From the terminal or your IDE, navigate to the `units_viewer` directory and execute `npm start`. This will open the viewer in your default web browser.
+2. In terminal (or IDE) navigate to the `units_viewer` directory and execute `npm start`. This will open the Units Viewer in your default web browser.
 3. If it does not automatically open, you can manually access it by visiting [localhost:2024](http://localhost:2024).
-4. If there is no `.json` file in `./units_tags`, you can create a new one by clicking __New Tag File__. Consider adding the names of all image folders as keys to this new file by clicking __Fill All__.
+4. Click the purple link on the top right corner to set (or change) the path to your 'units' folder.
+5. If you have multiple tag files in your 'units' folder, you can select which one to use by clicking the dropdown list below the purple link.
+6. If you don't have a tag file or you want to use a new one, you can create a one by clicking __NewJS__., type in the name and confirm. Then, add the names of all image folders as keys to this new file by clicking __FillAll__. and confirm.
 
 ### Navigation and Tagging
 
-- Navigate though units by clicking __↑__ for the previous, __↓__ for the next, corresponding to _Ctrl_ + _1_ and _Ctrl_ + _2_ respectively.
+- Navigate though units by clicking __←__ for the previous, __→__ for the next, corresponding to _Ctrl_ + _1_ and _Ctrl_ + _2_ respectively.
 - Tags can be added or removed by entering the tag in the text box and clicking __+__ or __-__.
-- Notes can be added by prefixing the text with `%` and clicking `+`.
-- To switch to a different tag file, select `xx.json` in the dropdown list, then click __Load__
+- Notes can be added by prefixing the text with `%` and clicking __+__. As notes are automatically indexed, to remove the n-th note, you can type `%n` in the text box and click __-__.
+- All changes to tags and notes will be saved automatically.
 
 ### Filtering and tracking
 
-- Use the input box and __Filter__ button to search for unit IDs and tags. 
-- Enter quoted strings to match portions of unit IDs; use unquoted strings to specify tags.
-- Supports logical operations like `&` (AND), `|` (OR), `!` (NOT) for tags, with priorities: `!` > `&` > `|`
-- Use the __Track__ button to underline multiple tags; separate the tags with commas in the input box.
-- To clear the filters or tracking settings, click __Filter__ or __Track__ with an empty input box.
+- Use the text box and __Filter__ button to search for unit IDs and tags. 
+- By default, input in the text box is treated as tags. Enter quoted strings to match portions of unit IDs, or prefix the text with `%` to specify notes.
+- Supports logical operations like `&&` (`#and#`), `++` (`#or#`), `^^` (`#not#`). Logical operations are applied sequentially from left to right. Adding space between an operation and its operands is optional.
+- Filtering can be matched to tags (default), part of notes (%xxx), and part of unit IDs ("xxx").
+- The latest implemented filter text will be shown right above the text box.
+- All tags of the current selection of neurons will be shown right below the filtering block. The part of the texts matching the current filter (tags, notes or unit IDs) will be highlighted in blue.
+- Use the __Track__ button to make a few tags more noticeable; separate the tags with commas in the text box. Tracked tags possessed by current unit will be highlighted in pink.
+- To clear the filters or tracking settings, click __Filter__ or __Track__ with an empty text box.
+
+### Display
+
+- All the images in the folder named with the current unit ID will be shown in the display window onf the left. The images will be resized and stacked in a gird structure, powered by [Masonry](https://masonry.desandro.com/).
+- Use the slider at the bottom of the control panel to set the number of columns for the grid.
+- The ratio of the image panel and the control panel is resizable.
+- Supported image formats: .jpg, .jpeg, .png, .bmp, .tiff, .gif, .webp., .svg, .pdf, .eps
+
 
 ## Contributing
 
@@ -62,7 +73,7 @@ This project is licensed under the Apache License, Version 2.0. See the [LICENSE
 
 ## Support
 
-Questions are welcomed at [vince.sun@nyu.edu](mailto:vince.sun@nyu.edu) or on the GitHub issues page.
+Questions are welcomed at vince.sun[at]nyu.edu or on the GitHub issues page.
 
 Thank you for using Units Viewer!
 
