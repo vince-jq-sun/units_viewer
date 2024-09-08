@@ -395,39 +395,37 @@ function createTagsDictionary() {
     console.log('Tag Occurrences:', tagOccurrences); // Debugging: print the tag occurrences
 }
 
+
 function applySearch() {
     const searchBox = document.getElementById('searchBox');
-    let searchText = searchBox.value.replace(/\s+/g, ''); // Remove all spaces
+    let searchText = searchBox.value;
 
-    searchTextDisplay = searchText; //add space before !,|,&
-    searchTextDisplay = searchTextDisplay.replace(/&/g, ' &');
-    searchTextDisplay = searchTextDisplay.replace(/\|/g, ' |');
-    searchTextDisplay = searchTextDisplay.replace(/!/g, ' !');
-    updateCurrentQueryDisplay(searchTextDisplay);
+    // Store the original search text for later use in highlighting
+    window.lastSearchText = searchText;
 
-    // Always start with the full set of units
-    let currentSet = new Set(Object.keys(neuronLabels));
+    // Update the current query display
+    updateCurrentQueryDisplay(searchText);
+
+    // Parse the query
+    const queries = parseQuery(searchText);
 
     // Check if the search box is empty
-    if (searchText === '') {
+    if (queries.length === 0) {
         // If the search box is empty, use the full set
-        activeUnits = Array.from(currentSet);
+        activeUnits = Object.keys(neuronLabels);
         activeUnitLabels = { ...neuronLabels };
-        createTagsDictionary(); // Recreate the tags dictionary based on the full dataset
+        createTagsDictionary();
         currentUnitId = activeUnits[0];
         currentUnitIndex = 0;
         displayCurrentUnit();
         return;
     }
 
-    // Split the string into components
-    const queries = searchText.split(/([&|!])/).filter(Boolean);
-
     // Check the first element and adjust if necessary
-    if (!['&', '|', '!'].includes(queries[0])) {
-        queries.unshift('&');
-    } else if (queries[0] === '|') {
-        queries[0] = '&';
+    if (!['&&', '++', '^^'].includes(queries[0])) {
+        queries.unshift('&&');
+    } else if (queries[0] === '++') {
+        queries[0] = '&&';
     }
 
     // Validate the search string
@@ -436,26 +434,12 @@ function applySearch() {
         return;
     }
 
-    // Apply the first query
-    currentSet = applyQuery(currentSet, queries[0], queries[1]);
-
-    // Process the rest of the queries
-    for (let i = 2; i < queries.length; i += 2) {
+    // Apply the queries
+    let currentSet = new Set(Object.keys(neuronLabels));
+    for (let i = 0; i < queries.length; i += 2) {
         const operator = queries[i];
-        const query = queries[i + 1];
-        const querySet = getQuerySet(query);
-
-        switch (operator) {
-            case '&':
-                currentSet = new Set([...currentSet].filter(x => querySet.has(x)));
-                break;
-            case '|':
-                currentSet = new Set([...currentSet, ...querySet]);
-                break;
-            case '!':
-                currentSet = new Set([...currentSet].filter(x => !querySet.has(x)));
-                break;
-        }
+        const query = queries[i + 1].trim(); // Trim each sub-query
+        currentSet = applyQuery(currentSet, operator, query);
     }
 
     // Update active neurons and labels based on the filtered result
@@ -481,13 +465,50 @@ function applySearch() {
     }
 }
 
+function parseQuery(queryString) {
+    // Replace keywords with symbols
+    queryString = queryString.replace(/#and#/gi, '&&');
+    queryString = queryString.replace(/#or#/gi, '++');
+    queryString = queryString.replace(/#not#/gi, '^^');
+
+    // Split the query string, preserving spaces within quotes and after '%'
+    const regex = /(\&\&|\+\+|\^\^)|("[^"]*")|('[^']*')|(%[^&+^]+)/g;
+    const tokens = [];
+    let lastIndex = 0;
+
+    queryString.replace(regex, (match, operator, doubleQuoted, singleQuoted, noteSearch, offset) => {
+        if (offset > lastIndex) {
+            tokens.push(queryString.slice(lastIndex, offset));
+        }
+        tokens.push(match);
+        lastIndex = offset + match.length;
+    });
+
+    if (lastIndex < queryString.length) {
+        tokens.push(queryString.slice(lastIndex));
+    }
+
+    return tokens.filter(token => token.trim() !== '');
+}
+
+
 function getQuerySet(query) {
-    // Check if the query is enclosed in single or double quotes for neuron IDs
-    if ((query.startsWith('"') && query.endsWith('"')) || (query.startsWith("'") && query.endsWith("'"))) {
-        const neuronId = query.slice(1, -1); // Remove the quotation marks
-        return new Set(Object.keys(neuronLabels).filter(neuron => neuron.includes(neuronId)));
+    query = query.trim();
+    if (query.startsWith('%')) {
+        // Search in notes
+        const searchString = query.slice(1).toLowerCase();
+        return new Set(Object.keys(neuronLabels).filter(neuronId => {
+            const notes = neuronLabels[neuronId].filter(tag => tag.startsWith('%'));
+            return notes.some(note => note.toLowerCase().includes(searchString));
+        }));
+    } else if ((query.startsWith('"') && query.endsWith('"')) || (query.startsWith("'") && query.endsWith("'"))) {
+        // Search for ID
+        const searchString = query.slice(1, -1).toLowerCase();
+        return new Set(Object.keys(neuronLabels).filter(neuronId => 
+            neuronId.toLowerCase().includes(searchString)
+        ));
     } else {
-        // Treat as a tag by default
+        // Treat as a tag
         return new Set(tagsDictionary[query] || []);
     }
 }
@@ -495,11 +516,11 @@ function getQuerySet(query) {
 function applyQuery(set, operator, query) {
     const querySet = getQuerySet(query);
     switch (operator) {
-        case '&':
+        case '&&':
             return new Set([...set].filter(x => querySet.has(x)));
-        case '|':
+        case '++':
             return new Set([...set, ...querySet]);
-        case '!':
+        case '^^':
             return new Set([...set].filter(x => !querySet.has(x)));
         default:
             return set;
@@ -507,13 +528,12 @@ function applyQuery(set, operator, query) {
 }
 
 function validateSearchString(queries) {
-    // Ensure the number of elements is even and that logical operators are in the correct places
     if (queries.length % 2 !== 0) {
         return false; // Should be an even number of elements after adjustments
     }
 
     for (let i = 0; i < queries.length; i += 2) {
-        if (!['&', '|', '!'].includes(queries[i])) {
+        if (!['&&', '++', '^^'].includes(queries[i])) {
             return false; // Logical operators must be in the first, third, fifth, etc. positions
         }
     }
@@ -873,6 +893,7 @@ function applyTracking() {
 
     displayCurrentUnit(); // Update the display to apply the tracking styles
 }
+
 async function displayCurrentUnit() {
     const neuronIdDisplay = document.getElementById('neuronIdDisplay');
     const neuronTagDisplay = document.getElementById('neuronTagDisplay');
@@ -887,15 +908,18 @@ async function displayCurrentUnit() {
         // Load images and check folder status
         const { exists, images } = await loadImages();
         
-        // Set the neuron ID display with appropriate styling
+        // Highlight matched parts in the unit ID
+        const highlightedId = highlightMatchedText(currentUnitId, window.lastSearchText, 'highlight-id');
+        
+        // Set the neuron ID display with appropriate styling and highlighting
         if (exists && images.length > 0) {
-            neuronIdDisplay.textContent = `${currentUnitId} ${indexInfo}`;
+            neuronIdDisplay.innerHTML = `${highlightedId} ${indexInfo}`;
             neuronIdDisplay.style.color = ''; // Reset to default color
         } else if (exists && images.length === 0) {
-            neuronIdDisplay.textContent = `${currentUnitId} ${indexInfo}: no imgs`;
+            neuronIdDisplay.innerHTML = `${highlightedId} ${indexInfo}: no imgs`;
             neuronIdDisplay.style.color = 'gray';
         } else {
-            neuronIdDisplay.textContent = `${currentUnitId} ${indexInfo}: no folder`;
+            neuronIdDisplay.innerHTML = `${highlightedId} ${indexInfo}: no folder`;
             neuronIdDisplay.style.color = 'gray';
         }
 
@@ -918,9 +942,12 @@ async function displayCurrentUnit() {
 
         neuronTagDisplay.innerHTML = tags.join(' ');
 
-        // Independently process and display notes
+        // Display notes with highlighting
         const notes = currentTagsAndNotes.filter(tag => tag.startsWith('%')).map(note => note.substring(1));
-        neuronNoteDisplay.innerHTML = notes.length ? `${notes.map(note => `<li>${note}</li>`).join('')}` : 'No notes available';
+        const highlightedNotes = notes.map(note => highlightMatchedText(note, window.lastSearchText, 'highlight-note'));
+        neuronNoteDisplay.innerHTML = notes.length ? 
+            `${highlightedNotes.map(note => `<li>${note}</li>`).join('')}` : 
+            'No notes available';
 
         // Display images or clear the container
         if (exists && images.length > 0) {
@@ -945,6 +972,32 @@ async function displayCurrentUnit() {
             neuronIdDisplay.textContent = 'No Tag File Selected';
         }
     }
+}
+
+function highlightMatchedText(text, searchText, highlightClass) {
+    if (!searchText) return text;
+    const searches = searchText.split(/&&|\+\+|\^\^/).map(s => s.trim());
+    let highlightedText = text;
+
+    searches.forEach(search => {
+        if (search.startsWith('%') && highlightClass === 'highlight-note') {
+            // For notes
+            const searchString = escapeRegExp(search.slice(1));
+            const regex = new RegExp(`(${searchString})`, 'gi');
+            highlightedText = highlightedText.replace(regex, `<span class="${highlightClass}">$1</span>`);
+        } else if ((search.startsWith('"') && search.endsWith('"')) || (search.startsWith("'") && search.endsWith("'")) && highlightClass === 'highlight-id') {
+            // For unit IDs
+            const searchString = escapeRegExp(search.slice(1, -1));
+            const regex = new RegExp(`(${searchString})`, 'gi');
+            highlightedText = highlightedText.replace(regex, `<span class="${highlightClass}">$1</span>`);
+        }
+    });
+
+    return highlightedText;
+}
+
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 async function appendAllFolderNamesToNeuronLabels() {

@@ -110,7 +110,7 @@
             flex: 1; /* Allows the search box to take up the remaining space */
             padding: 10px; /* Corrected syntax: no space between number and unit */
             box-sizing: border-box; /* Includes padding in the height calculation */
-            height:60px; /* Sets the height to fill the parent container */
+            height:70px; /* Sets the height to fill the parent container */
             border: 1px solid #ccc; /* Optional: adds a border for better visibility */
             margin-left: 2px;
         }
@@ -154,7 +154,7 @@
             color: gray; /* Set default tag color to gray */
         }
         .highlighted-tag {
-            background-color: #e6f2ff;
+            background-color: #cbeefb;
             font-size: medium; 
             color: black; /* Set highlighted tag color to black */
         }
@@ -431,6 +431,14 @@
             margin-top: 10px;
             margin-left: 6px;
         }
+        .highlight-note {
+            color: #000;
+            background-color: #cbeefb;
+        }
+        .highlight-id {
+        background-color: #cbeefb;
+            /* The text will remain bold due to the existing styling of unit IDs */
+        }
     </style>
 </head>
 <body>
@@ -489,7 +497,7 @@
                 <span id="currentQueryDisplay"></span>  
             </div>
             <div id="search-container">
-                <textarea id="searchBox" placeholder="Enter tags / IDs('xxx') / notes(%xxx)"></textarea>
+                <textarea id="searchBox" placeholder="Enter tags / IDs('xxx') / notes(%xxx) Use &&, ++, ^^ or for logic"></textarea>
             </div>
             <div class="tag-button-container">
                 <button id="button-tag-add" onclick="addTag()">+</button>

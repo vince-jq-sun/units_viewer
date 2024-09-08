@@ -12,7 +12,8 @@
     "express": "^4.19.2",
     "imagesloaded": "^5.0.0",
     "masonry-layout": "^4.2.2",
-    "open": "^10.1.0"
+    "open": "^10.1.0",
+    "pdfjs-dist": "^4.6.82"
   },
   "author": "Your Name",
   "license": "MIT"
