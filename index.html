@@ -523,49 +523,9 @@
     
     <script>
         
-        // 确保在页面加载完成后添加事件监听器
         document.addEventListener('DOMContentLoaded', () => {
-            initializeCurrentTagFile();
-
-            // Add event listeners for keydown events
-            document.addEventListener('keydown', handleKeyDown);
-
-            // Add event listener for Enter key in the search box
-            const searchBox = document.getElementById('searchBox');
-            searchBox.addEventListener('keydown', function(event) {
-                if (event.key === 'Enter') {
-                    applySearch();
-                }
-            });
-
-            // Add event listener for the units path link
-            const unitsPathLink = document.getElementById('unitsPathLink');
-            unitsPathLink.addEventListener('click', handleUnitsPathClick);
-
-            // Initialize the units path link
-            updateUnitsPathLink();
-
-            // Get initial path
-            fetch('/get-current-units-path')
-                .then(response => response.json())
-                .then(data => {
-                    currentUnitsPath = data.displayPath;
-                    updateUnitsPathLink();
-                })
-                .catch(error => console.error('Error getting initial path:', error));
+            initializeApp();
         });
-
-        let currentUnitsPath = 'units'; // Initialize with default path
-
-        function updateUnitsPathLink() {
-            const link = document.getElementById('unitsPathLink');
-            link.textContent = currentUnitsPath || 'Select Path';
-        }
-
-        async function handleUnitsPathClick(event) {
-            event.preventDefault();
-            await selectFolder();
-        }
 
     </script>
 

@@ -1,4 +1,7 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await getCurrentPaths();
+    initializeCurrentTagFile();
+
     // resizer
     const resizer = document.getElementById('resizer');
     const controlPanel = document.getElementById('control-panel');
@@ -30,7 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initialize current tag file and set up key event listeners
-    initializeCurrentTagFile();
     document.addEventListener('keydown', handleKeyDown);
 
     // Set up search box functionality
@@ -135,18 +137,77 @@ let scaleFactor = scaleFactorDefault; // Base scale factor (initial scale, e.g.,
 let sliderScale = 1.0; // Initial displayed scale on the slider (starts at 1)
 let actualScaleFactor = scaleFactor * sliderScale; // Actual scale factor for images
 let firstRun = true; // Flag to check if it's the first run of the script
-let tagsFile = 'tags_1.json'; // Default tags file
 let currentTagFile = ''; // Global variable
 let allFolderNames = [];
 let notes = [];
 let trackingTags = [];
-let currentUnitsPath = 'units'; // Initialize with default path
+let currentUnitsPath;
+let tagsPath;
 let currentColumns = 4; // Default to 3 columns
+let masonryInstance = null;
+
+
+function initializeApp() {
+    initializeCurrentTagFile();
+    setupEventListeners();
+    updateUnitsPathLink();
+    getInitialPath();
+}
+
+function setupEventListeners() {
+    document.addEventListener('keydown', handleKeyDown);
+
+    const searchBox = document.getElementById('searchBox');
+    searchBox.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            applySearch();
+        }
+    });
+}
 
 function updateUnitsPathLink() {
     const link = document.getElementById('unitsPathLink');
     link.textContent = currentUnitsPath || 'Select Path';
 }
+
+function getInitialPath() {
+    fetch('/get-current-units-path')
+        .then(response => response.json())
+        .then(data => {
+            currentUnitsPath = data.displayPath;
+            updateUnitsPathLink();
+        })
+        .catch(error => console.error('Error getting initial path:', error));
+}
+
+function handleKeyDown(event) {
+    // Check if either Ctrl (Windows/Linux) or Cmd (Mac) is pressed along with the arrow keys
+    if ((event.ctrlKey) && event.key === '2') {
+        switchToNextUnit(); // Move to the next neuron
+    } else if ((event.ctrlKey) && event.key === '1') {
+        switchToPreviousUnit(); // Move to the previous neuron
+    }
+}
+
+async function getCurrentPaths() {
+    try {
+        const response = await fetch('/current-paths');
+        const data = await response.json();
+        if (response.ok) {
+            currentUnitsPath = data.unitsPath;
+            tagsPath = data.tagsPath;
+            // Instead of calling updatePathsDisplay, let's update the UI directly
+            updateUnitsPathLink();
+            console.log('Paths updated:', { currentUnitsPath, tagsPath });
+        } else {
+            console.error('Paths not initialized:', data.error);
+            // Handle the error in the UI, maybe prompt the user to set a path
+        }
+    } catch (error) {
+        console.error('Error fetching current paths:', error);
+    }
+}
+
 
 function listFolderNames() {
     const fs = require('fs');
@@ -197,17 +258,35 @@ function updateLastUsedTagFile() {
     });
 }
 
-
-function initializeCurrentTagFile() {
-    fetch('/get-last-used-tag-file')
-        .then(response => response.json())
-        .then(data => {
-            currentTagFile = data.lastUsedTagFile || 'tags_1.json';
+async function initializeCurrentTagFile() {
+    try {
+        const response = await fetch('/last-used-data');
+        const data = await response.json();
+        
+        if (data.lastUsedTagFile) {
+            currentTagFile = data.lastUsedTagFile;
             console.log('Current tag file:', currentTagFile);
-            populateDropdown();
-            fetchUnitLabels();
-        })
-        .catch(error => console.error('Error initializing current tag file:', error));
+            await fetchUnitLabels();
+        } else {
+            console.log('No last used tag file found');
+            // Clear any existing data
+            currentTagFile = null;
+            neuronLabels = {};
+            activeUnits = [];
+        }
+        
+        // Update the units path if it's provided
+        if (data.lastUsedUnitsPath) {
+            currentUnitsPath = data.lastUsedUnitsPath;
+            console.log('Current units path:', currentUnitsPath);
+        }
+        
+        await populateDropdown();
+        displayCurrentUnit(); // This will handle the case where no unit is selected
+    } catch (error) {
+        console.error('Error initializing from last used data:', error);
+        // Handle the error, maybe show a message to the user
+    }
 }
 
 function populateDropdown() {
@@ -273,7 +352,7 @@ async function fetchUnitLabels() {
         }
     } catch (error) {
         console.error('Error fetching neuron labels:', error);
-        alert(`Error loading neuron labels: ${error.message}`);
+        // alert(`Error loading neuron labels: ${error.message}`);
         displayEmptyState();
     }
 }
@@ -474,14 +553,6 @@ function switchToPreviousUnit() {
     }
 }
 
-function handleKeyDown(event) {
-    // Check if either Ctrl (Windows/Linux) or Cmd (Mac) is pressed along with the arrow keys
-    if ((event.ctrlKey) && event.key === '2') {
-        switchToNextUnit(); // Move to the next neuron
-    } else if ((event.ctrlKey) && event.key === '1') {
-        switchToPreviousUnit(); // Move to the previous neuron
-    }
-}
 
 // New functions to add and remove tags
 function addTag() {
@@ -663,7 +734,6 @@ async function loadImages() {
     }
 }
 
-
 function adjustColumns(value) {
     currentColumns = parseInt(value);
     console.log(`Adjusting columns to ${currentColumns}`);
@@ -678,22 +748,18 @@ function adjustColumns(value) {
 }
 
 function initializeMasonry() {
-    const masonryWrapper = document.querySelector('.masonry-wrapper');
-    if (masonryWrapper) {
-        console.log('Initializing Masonry');
-        if (masonryInstance) {
-            masonryInstance.destroy();
-        }
-        masonryInstance = new Masonry(masonryWrapper, {
-            itemSelector: '.masonry-item',
-            columnWidth: '.masonry-item',
-            percentPosition: true,
-            gutter: 1,
-            transitionDuration: '0.2s'
-        });
-    } else {
-        console.log('Masonry wrapper not found');
+    const grid = document.querySelector('.grid');
+    if (!grid) return; // Exit if the grid element doesn't exist
+
+    if (masonryInstance) {
+        masonryInstance.destroy(); // Destroy existing instance if it exists
     }
+
+    masonryInstance = new Masonry(grid, {
+        itemSelector: '.grid-item',
+        columnWidth: '.grid-sizer',
+        percentPosition: true
+    });
 }
 
 function displayImages(imageFiles, neuronId) {
@@ -751,7 +817,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Reapply layout on window resize
-window.addEventListener('resize', applyMasonryLayout);
+window.addEventListener('resize', () => adjustColumns(document.getElementById('columnSlider').value));
 
 
 function applyMasonryLayout() {
@@ -890,6 +956,9 @@ async function displayCurrentUnit() {
             currentUnitIndex = 0;
             displayCurrentUnit(); // Recursive call to display the first unit
         }
+        if (!currentTagFile) {
+            neuronIdDisplay.textContent = 'No Tag File Selected';
+        }
     }
 }
 
@@ -946,10 +1015,13 @@ function createFile(fileName) {
         }
         return response.json();
     })
-    .then(newFileName => {
-        populateDropdown();  // Refresh the dropdown after creating a new file
-        setCurrentTagFile(newFileName);  // Set the new file as the current selection
-        location.reload(); //refresh the browser
+    .then(data => {
+        if (data.fileName) {
+            populateDropdown();  // Refresh the dropdown after creating a new file
+            setCurrentTagFile(data.fileName);  // Set the new file as the current selection
+        } else {
+            throw new Error('File name not returned from server');
+        }
     })
     .catch(error => {
         console.error('Error creating file:', error);
@@ -985,7 +1057,7 @@ async function selectFolder() {
         currentUnitsPath = data.absolutePath;
         updateUnitsPathLink();
         console.log('Current directory for image folders:', data.absolutePath);
-        alert(`units文件夹已更新到: ${data.absolutePath}`);
+        alert(`Units folder updated to: ${data.absolutePath}`);
 
         if (data.hasJsonFiles) {
             // Fetch the list of JSON files in the new folder
@@ -997,13 +1069,13 @@ async function selectFolder() {
                 currentTagFile = jsonFiles[0];
                 updateLastUsedTagFile();
                 console.log('Set current tag file to:', currentTagFile);
-                alert(`已自动选择标签文件: ${currentTagFile}`);
+                alert(`Auto-selected tag file: ${currentTagFile}`);
             } else {
-                alert('新文件夹中没有标签文件 (.json)');
+                alert('no tag files in current folder (.json)');
                 currentTagFile = null;
             }
         } else {
-            alert('新文件夹中没有标签文件 (.json)');
+            alert('no tag files in current folder (.json)');
             currentTagFile = null;
         }
 
@@ -1013,11 +1085,15 @@ async function selectFolder() {
         populateDropdown();
         displayCurrentUnit();
     } catch (err) {
-        console.error('选择文件夹时出错:', err);
-        alert('更新失败: ' + err.message);
+        console.error('Error selecting folder:', err);
+        alert('Update failed: ' + err.message);
     }
+
+    // Refresh the page
+    window.location.reload();
 }
 
 function getCurrentNeuronId() {
     return currentUnitId;
 }
+
