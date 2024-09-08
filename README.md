@@ -55,7 +55,7 @@ Ensure Node.js is installed on your system before starting, as this project is b
 - Use the __Track__ button to make a few tags more noticeable; separate the tags with commas in the text box. Tracked tags possessed by current unit will be highlighted in pink.
 - To clear the filters or tracking settings, click __Filter__ or __Track__ with an empty text box.
 
-### Search Examples
+### Filter Examples
 space between operators and operands is optional.
 
 1. Simple tag search:
