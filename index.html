@@ -524,7 +524,7 @@
                 <button id="reScaleButton" onclick="remapScale()">Reset</button>                
             </div> -->
             <div id="column-slider-container">
-                <input type="range" id="columnSlider" min="1" max="8" step="1" value="4" list="column-ticks">
+                <input type="range" id="columnSlider" min="1" max="8" step="1" value="3" list="column-ticks">
                 <datalist id="column-ticks">
                     <option value="1" label="1"></option>
                     <option value="2" label="2"></option>
@@ -545,7 +545,13 @@
 
     <script src="/node_modules/masonry-layout/dist/masonry.pkgd.min.js"></script>
     <script src="/node_modules/imagesloaded/imagesloaded.pkgd.min.js"></script>
-    
+    <script type="module">
+        // Import the PDF.js library to support PDF files
+        import * as pdfjsLib from '/node_modules/pdfjs-dist/build/pdf.mjs';
+        window.pdfjsLib = pdfjsLib;
+        // Set the worker source
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/node_modules/pdfjs-dist/build/pdf.worker.mjs';
+    </script>
     <script>
         
         document.addEventListener('DOMContentLoaded', () => {

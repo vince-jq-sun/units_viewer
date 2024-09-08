@@ -132,7 +132,7 @@ app.get('/units/:neuronId', (req, res) => {
                     return res.status(500).json({ error: 'Unable to scan directory' });
                 }
                 console.log('Files in directory:', files);
-                const imageFiles = files.filter(file => /\.(png|jpg|jpeg|gif)$/i.test(file));
+                const imageFiles = files.filter(file => /\.(png|jpg|jpeg|gif|bmp|webp|tiff|svg|pdf|eps)$/i.test(file));
                 imageFiles.sort();
                 console.log('Image files:', imageFiles);
                 res.json({ exists: true, images: imageFiles });
@@ -252,11 +252,20 @@ app.post('/update-units-figures-path', (req, res) => {
     });
 });
 
-app.listen(2024, () => {
+app.listen(2024, async () => {
     console.log('Server is running on http://localhost:2024');
     console.log('Current basePath:', basePath);
     console.log('Current currentUnitsPath:', currentUnitsPath);
     console.log('Current tagsPath:', tagsPath);
+    
+    try {
+        // Dynamically import the 'open' package
+        const open = await import('open');
+        // Auto-launch the browser
+        await open.default('http://localhost:2024');
+    } catch (error) {
+        console.error('Failed to open browser:', error);
+    }
 });
 
 function listFolderNames() {

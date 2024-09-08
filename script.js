@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const imageContainer = document.getElementById('image-container');
     let startX, startWidth, initialOffset;
 
+    document.addEventListener('DOMContentLoaded', initializeAndStart);
+
     resizer.addEventListener('mousedown', function(e) {
         e.preventDefault();
         startX = e.clientX;
@@ -143,8 +145,41 @@ let notes = [];
 let trackingTags = [];
 let currentUnitsPath;
 let tagsPath;
-let currentColumns = 4; // Default to 3 columns
+let currentColumns = 3; // Default to 3 columns
 let masonryInstance = null;
+
+// Add this function to initialize and start the display
+function initializeAndStart() {
+    getCurrentPaths()
+        .then(() => initializeCurrentTagFile())
+        .then(() => {
+            if (activeUnits.length > 0) {
+                currentUnitId = activeUnits[0];
+                currentUnitIndex = 0;
+                displayCurrentUnit();
+            } else {
+                console.log('No units available to display');
+                displayEmptyState();
+            }
+        })
+        .catch(error => {
+            console.error('Error during initialization:', error);
+            displayEmptyState();
+        });
+}
+
+// Add this function to display an empty state
+function displayEmptyState() {
+    const neuronIdDisplay = document.getElementById('neuronIdDisplay');
+    const neuronTagDisplay = document.getElementById('neuronTagDisplay');
+    const neuronNoteDisplay = document.getElementById('neuronNoteDisplay');
+    const imageContainer = document.getElementById('image-container');
+
+    neuronIdDisplay.textContent = 'No Unit Selected';
+    neuronTagDisplay.textContent = '';
+    neuronNoteDisplay.textContent = '';
+    imageContainer.innerHTML = '';
+}
 
 
 function initializeApp() {
@@ -774,24 +809,71 @@ function displayImages(imageFiles, neuronId) {
     masonryWrapper.className = 'masonry-wrapper';
     imageContainer.appendChild(masonryWrapper);
 
-    imageFiles.forEach((file, index) => {
-        const imgWrapper = document.createElement('div');
-        imgWrapper.className = 'masonry-item';
-        imgWrapper.style.width = `calc(${100 / currentColumns}% - 1px)`;
-        
-        const img = new Image();
-        img.src = `/units/${neuronId}/${file}`;
-        img.alt = file;
-        img.className = 'scalable-image';
-        
-        imgWrapper.appendChild(img);
-        masonryWrapper.appendChild(imgWrapper);
-        
-        console.log(`Added image ${index + 1}, width: ${imgWrapper.style.width}`);
+    const promises = imageFiles.map((file, index) => {
+        return new Promise((resolve) => {
+            const imgWrapper = document.createElement('div');
+            imgWrapper.className = 'masonry-item';
+            imgWrapper.style.width = `calc(${100 / currentColumns}% - 1px)`;
+
+            const fileExtension = file.split('.').pop().toLowerCase();
+
+            if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'tiff'].includes(fileExtension)) {
+                // Handle standard image formats
+                const img = new Image();
+                img.src = `/units/${neuronId}/${file}`;
+                img.alt = file;
+                img.className = 'scalable-image';
+                img.onload = resolve;
+                imgWrapper.appendChild(img);
+            } else if (fileExtension === 'svg') {
+                // Handle SVG files
+                fetch(`/units/${neuronId}/${file}`)
+                    .then(response => response.text())
+                    .then(svgContent => {
+                        imgWrapper.innerHTML = svgContent;
+                        const svgElement = imgWrapper.querySelector('svg');
+                        svgElement.setAttribute('width', '100%');
+                        svgElement.setAttribute('height', 'auto');
+                        svgElement.classList.add('scalable-image');
+                        resolve();
+                    });
+            } else if (fileExtension === 'pdf') {
+                // Handle PDF files
+                const canvas = document.createElement('canvas');
+                canvas.className = 'scalable-image';
+                imgWrapper.appendChild(canvas);
+
+                pdfjsLib.getDocument(`/units/${neuronId}/${file}`).promise.then(pdf => {
+                    pdf.getPage(1).then(page => {
+                        const scale = 1.5;
+                        const viewport = page.getViewport({ scale: scale });
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+                        const renderContext = {
+                            canvasContext: canvas.getContext('2d'),
+                            viewport: viewport
+                        };
+                        page.render(renderContext).promise.then(() => {
+                            resolve();
+                        });
+                    });
+                });
+            } else if (fileExtension === 'eps') {
+                // For EPS files, display a placeholder or icon
+                const placeholder = document.createElement('div');
+                placeholder.className = 'file-placeholder scalable-image';
+                placeholder.textContent = 'EPS File';
+                imgWrapper.appendChild(placeholder);
+                resolve();
+            }
+
+            masonryWrapper.appendChild(imgWrapper);
+            console.log(`Added image ${index + 1}, width: ${imgWrapper.style.width}`);
+        });
     });
 
-    // Use imagesLoaded to ensure all images are loaded before initializing Masonry
-    imagesLoaded(masonryWrapper, function() {
+    // Wait for all images to load before initializing Masonry
+    Promise.all(promises).then(() => {
         console.log(`All images loaded, total: ${imageFiles.length}`);
         initializeMasonry();
     });
@@ -895,6 +977,11 @@ function applyTracking() {
 }
 
 async function displayCurrentUnit() {
+    if (!currentUnitId || activeUnits.length === 0) {
+        displayEmptyState();
+        return;
+    }
+
     const neuronIdDisplay = document.getElementById('neuronIdDisplay');
     const neuronTagDisplay = document.getElementById('neuronTagDisplay');
     const neuronNoteDisplay = document.getElementById('neuronNoteDisplay');
