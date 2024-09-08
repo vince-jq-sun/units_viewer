@@ -152,6 +152,7 @@ function initializeApp() {
     setupEventListeners();
     updateUnitsPathLink();
     getInitialPath();
+    updateCurrentQueryDisplay('')
 }
 
 function setupEventListeners() {
@@ -397,6 +398,12 @@ function createTagsDictionary() {
 function applySearch() {
     const searchBox = document.getElementById('searchBox');
     let searchText = searchBox.value.replace(/\s+/g, ''); // Remove all spaces
+
+    searchTextDisplay = searchText; //add space before !,|,&
+    searchTextDisplay = searchTextDisplay.replace(/&/g, ' &');
+    searchTextDisplay = searchTextDisplay.replace(/\|/g, ' |');
+    searchTextDisplay = searchTextDisplay.replace(/!/g, ' !');
+    updateCurrentQueryDisplay(searchTextDisplay);
 
     // Always start with the full set of units
     let currentSet = new Set(Object.keys(neuronLabels));
@@ -1061,16 +1068,26 @@ async function selectFolder() {
         await loadImages();
         populateDropdown();
         displayCurrentUnit();
+
+        // Refresh the page
+        window.location.reload();
+
     } catch (err) {
         console.error('Error selecting folder:', err);
         alert('Update failed: ' + err.message);
     }
 
-    // Refresh the page
-    window.location.reload();
 }
 
 function getCurrentNeuronId() {
     return currentUnitId;
 }
 
+function updateCurrentQueryDisplay(query) {
+    const currentQueryDisplay = document.getElementById('currentQueryDisplay');
+    if (query && query.trim() !== '') {
+        currentQueryDisplay.textContent = `QURIED: ${query}`;
+    } else {
+        currentQueryDisplay.textContent = 'QURIED: <all>';
+    }
+}

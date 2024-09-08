@@ -90,7 +90,7 @@
             padding-left: 15px;
         }
         #search-container{
-            margin: 12px 10px 4px 4px; /* top right bottom left */
+            margin: 2px 10px 4px 4px; /* top right bottom left */
             display: flex; /* Align the search box and button in a row */
             align-items: flex-start;
         }
@@ -159,8 +159,8 @@
             color: black; /* Set highlighted tag color to black */
         }
         .tracked-and-present {
-            /* background-color: lemon yellow; */
-            background-color: #FEF250;
+            /* background-color: #FEF250; */
+            background-color: #ffe6e6
         }
         .instruction {
             margin-left: 30px;
@@ -212,7 +212,7 @@
             cursor: pointer;
         }
         #switch-container {
-            margin: 6px 0px 6px 6px;
+            margin: 6px 0px 12px 6px;
             cursor: pointer;
             display: flex;
             flex-direction: row;
@@ -422,6 +422,15 @@
             width: 100%;
             height: auto;
         }
+        #currentQueryDisplay {
+            font-size: 0.9em;
+            color: #666;
+            font-style: italic;
+        }
+        #queryContainer {
+            margin-top: 10px;
+            margin-left: 6px;
+        }
     </style>
 </head>
 <body>
@@ -475,6 +484,9 @@
                     <span class="shortcut">ctrl+2</span>
                     <span class="arrow">&rarr;</span>
                 </button>
+            </div>
+            <div id="queryContainer">
+                <span id="currentQueryDisplay"></span>  
             </div>
             <div id="search-container">
                 <textarea id="searchBox" placeholder="Enter tags / IDs('xxx') / notes(%xxx)"></textarea>
