@@ -394,15 +394,17 @@ function createTagsDictionary() {
     console.log('Tag Occurrences:', tagOccurrences); // Debugging: print the tag occurrences
 }
 
-
 function applySearch() {
     const searchBox = document.getElementById('searchBox');
     let searchText = searchBox.value.replace(/\s+/g, ''); // Remove all spaces
 
+    // Always start with the full set of units
+    let currentSet = new Set(Object.keys(neuronLabels));
+
     // Check if the search box is empty
     if (searchText === '') {
-        // If the search box is empty, activate the full set
-        activeUnits = Object.keys(neuronLabels);
+        // If the search box is empty, use the full set
+        activeUnits = Array.from(currentSet);
         activeUnitLabels = { ...neuronLabels };
         createTagsDictionary(); // Recreate the tags dictionary based on the full dataset
         currentUnitId = activeUnits[0];
@@ -427,48 +429,26 @@ function applySearch() {
         return;
     }
 
-    let currentSet = new Set(Object.keys(neuronLabels)); // Start with the full set of neuron IDs
-
-    // Compute the full set with the first query
+    // Apply the first query
     currentSet = applyQuery(currentSet, queries[0], queries[1]);
 
-    let orSets = [];
-    let andSets = [];
-    let notSets = [];
-
-    // Organize the queries by their logical operation
+    // Process the rest of the queries
     for (let i = 2; i < queries.length; i += 2) {
         const operator = queries[i];
-        const nextQuery = queries[i + 1];
+        const query = queries[i + 1];
+        const querySet = getQuerySet(query);
 
-        if (operator === '|') {
-            orSets.push(getQuerySet(nextQuery));
-        } else if (operator === '&') {
-            andSets.push(getQuerySet(nextQuery));
-        } else if (operator === '!') {
-            notSets.push(getQuerySet(nextQuery));
+        switch (operator) {
+            case '&':
+                currentSet = new Set([...currentSet].filter(x => querySet.has(x)));
+                break;
+            case '|':
+                currentSet = new Set([...currentSet, ...querySet]);
+                break;
+            case '!':
+                currentSet = new Set([...currentSet].filter(x => !querySet.has(x)));
+                break;
         }
-    }
-
-    // Apply OR operations
-    if (orSets.length > 0) {
-        orSets.forEach(set => {
-            currentSet = new Set([...currentSet, ...set]);
-        });
-    }
-
-    // Apply AND operations
-    if (andSets.length > 0) {
-        andSets.forEach(set => {
-            currentSet = new Set([...currentSet].filter(x => set.has(x)));
-        });
-    }
-
-    // Apply NOT operations
-    if (notSets.length > 0) {
-        notSets.forEach(set => {
-            currentSet = new Set([...currentSet].filter(x => !set.has(x)));
-        });
     }
 
     // Update active neurons and labels based on the filtered result
@@ -494,6 +474,31 @@ function applySearch() {
     }
 }
 
+function getQuerySet(query) {
+    // Check if the query is enclosed in single or double quotes for neuron IDs
+    if ((query.startsWith('"') && query.endsWith('"')) || (query.startsWith("'") && query.endsWith("'"))) {
+        const neuronId = query.slice(1, -1); // Remove the quotation marks
+        return new Set(Object.keys(neuronLabels).filter(neuron => neuron.includes(neuronId)));
+    } else {
+        // Treat as a tag by default
+        return new Set(tagsDictionary[query] || []);
+    }
+}
+
+function applyQuery(set, operator, query) {
+    const querySet = getQuerySet(query);
+    switch (operator) {
+        case '&':
+            return new Set([...set].filter(x => querySet.has(x)));
+        case '|':
+            return new Set([...set, ...querySet]);
+        case '!':
+            return new Set([...set].filter(x => !querySet.has(x)));
+        default:
+            return set;
+    }
+}
+
 function validateSearchString(queries) {
     // Ensure the number of elements is even and that logical operators are in the correct places
     if (queries.length % 2 !== 0) {
@@ -506,35 +511,6 @@ function validateSearchString(queries) {
         }
     }
     return true;
-}
-
-function applyQuery(set, operator, query) {
-    const querySet = getQuerySet(query);
-    if (operator === '&') {
-        return new Set([...set].filter(x => querySet.has(x)));
-    } else if (operator === '|') {
-        return new Set([...set, ...querySet]);
-    } else if (operator === '!') {
-        return new Set([...set].filter(x => !querySet.has(x)));
-    }
-    return set; // Default, should not reach here
-}
-
-function getQuerySet(query) {
-    let querySet = new Set();
-
-    // Check if the query is enclosed in single or double quotes for neuron IDs
-    if ((query.startsWith('"') && query.endsWith('"')) || (query.startsWith("'") && query.endsWith("'"))) {
-        const neuronId = query.slice(1, -1); // Remove the quotation marks
-        querySet = new Set(Object.keys(neuronLabels).filter(neuron => neuron.includes(neuronId)));
-    } else {
-        // Treat as a tag by default
-        if (tagsDictionary[query]) {
-            querySet = new Set(tagsDictionary[query]);
-        }
-    }
-
-    return querySet;
 }
 
 function switchToNextUnit() {
@@ -886,11 +862,10 @@ function remapScale() {
 function applyTracking() {
     const inputBox = document.getElementById('searchBox');
     const inputText = inputBox.value;
-    trackingTags = inputText.split(',').map(tag => tag.trim());
+    trackingTags = inputText.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
 
     displayCurrentUnit(); // Update the display to apply the tracking styles
 }
-
 async function displayCurrentUnit() {
     const neuronIdDisplay = document.getElementById('neuronIdDisplay');
     const neuronTagDisplay = document.getElementById('neuronTagDisplay');
@@ -927,6 +902,9 @@ async function displayCurrentUnit() {
             let tagClass = currentTagsAndNotes.includes(tag) ? 'highlighted-tag' : 'default-tag';
             if (trackingTags.includes(tag)) {
                 tagClass += ' tracking-tag';
+                if (currentTagsAndNotes.includes(tag)) {
+                    tagClass += ' tracked-and-present';
+                }
             }
             return `<span class="${tagClass}">${tagDisplay}</span>`;
         }).filter(tag => tag);
@@ -961,7 +939,6 @@ async function displayCurrentUnit() {
         }
     }
 }
-
 
 async function appendAllFolderNamesToNeuronLabels() {
     if (!currentTagFile) {
