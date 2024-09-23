@@ -775,7 +775,7 @@ async function loadImages() {
 function adjustColumns(value) {
     currentColumns = parseInt(value);
     console.log(`Adjusting columns to ${currentColumns}`);
-    document.getElementById('columnValue').textContent = `${currentColumns} column${currentColumns > 1 ? 's' : ''}`;
+    document.getElementById('columnValue').textContent = `${currentColumns} col.${currentColumns > 1 ? 's' : ''}`;
     
     const masonryItems = document.querySelectorAll('.masonry-item');
     masonryItems.forEach((item) => {
@@ -1002,12 +1002,15 @@ async function displayCurrentUnit() {
         if (exists && images.length > 0) {
             neuronIdDisplay.innerHTML = `${highlightedId} ${indexInfo}`;
             neuronIdDisplay.style.color = ''; // Reset to default color
+            neuronIdDisplay.style.textDecoration = 'none';
         } else if (exists && images.length === 0) {
-            neuronIdDisplay.innerHTML = `${highlightedId} ${indexInfo}: no imgs`;
+            neuronIdDisplay.innerHTML = `${highlightedId} ${indexInfo}: img?`;
             neuronIdDisplay.style.color = 'gray';
+            neuronIdDisplay.style.textDecoration = 'none';
         } else {
-            neuronIdDisplay.innerHTML = `${highlightedId} ${indexInfo}: no folder`;
+            neuronIdDisplay.innerHTML = `${highlightedId} ${indexInfo}: folder?`;
             neuronIdDisplay.style.color = 'gray';
+            neuronIdDisplay.style.textDecoration = 'line-through';  // Add this line to cross out the text
         }
 
         const currentTagsAndNotes = neuronLabels[currentUnitId] || [];
