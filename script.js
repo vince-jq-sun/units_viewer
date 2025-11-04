@@ -1,14 +1,13 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    await getCurrentPaths();
-    initializeCurrentTagFile();
+    // await getCurrentPaths();
+    initializeApp();
 
-    // resizer
+    // EVENT LISTENERS
+    // resizer between the control panel and the image container
     const resizer = document.getElementById('resizer');
     const controlPanel = document.getElementById('control-panel');
     const imageContainer = document.getElementById('image-container');
     let startX, startWidth, initialOffset;
-
-    document.addEventListener('DOMContentLoaded', initializeAndStart);
 
     resizer.addEventListener('mousedown', function(e) {
         e.preventDefault();
@@ -45,15 +44,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Set up units path link
+    // Set up units path link (folder selection by clicking)
     const unitsPathLink = document.getElementById('unitsPathLink');
     unitsPathLink.addEventListener('click', async (event) => {
         event.preventDefault();
         await selectFolder();
     });
-
-    // Initialize the units path link
-    updateUnitsPathLink();
 
     // Get initial path
     fetch('/get-current-units-path')
@@ -74,7 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return response.json();
         })
         .then(folderNames => {
-            console.log('Received folder names:', folderNames);
+            // console.log('Received folder names:', folderNames);
             allFolderNames = folderNames;
         })
         .catch(error => {
@@ -95,6 +91,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('cancelFill').addEventListener('click', function() {
         document.getElementById('fillModal').style.display = 'none';
     });
+    // end of FillAll functionality
 
     // Set up NewJS functionality
     document.getElementById('newButton').addEventListener('click', function() {
@@ -113,17 +110,54 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('overlay').style.display = 'none';
         document.getElementById('newFileModal').style.display = 'none';
     });
+    // end of NewJS functionality
 
+    // monitor tag file dropdown functionality
     const tagFileDropdown = document.getElementById('tagFileDropdown');
     tagFileDropdown.addEventListener('change', function() {
         const selectedTagFile = this.value;
         if (selectedTagFile !== currentTagFile) {
             currentTagFile = selectedTagFile;
+            record.lastUsedTagFile = currentTagFile;
+            updateLogRecord();
+
+            // if it exists, try to load the setup: the trackingTags and searchText
+            console.log('New tag file loaded:', currentTagFile);  // Optional: log the loaded file for debugging
+
             fetchUnitLabels();
-            updateLastUsedTagFile();
+
+            loadAndApplySetup();
         }
     });
 });
+
+
+// function to load setup from the record
+function loadAndApplySetup() {
+    //load setup from the record
+    if (record.setups && record.setups[currentTagFile]) {
+        const setup = record.setups[currentTagFile];
+        console.log('existing setup:', setup);
+
+        if (setup.searchText) {
+            updateCurrentQueryDisplay(setup.searchText);
+            //print 
+            console.log('searchText:', setup.searchText);
+            applySearch(setup.searchText);
+        }
+        if (setup.trackingTags) {
+            applyTracking(setup.trackingTags);
+        }
+    }
+    else {
+        console.log('no setup found for', currentTagFile);
+        record.setups[currentTagFile] = {};
+    }
+}
+
+
+
+
 
 let neuronLabels = {}; // Original neuron labels data (from JSON)
 let activeUnitLabels = {}; // Filtered neuron labels
@@ -144,29 +178,78 @@ let allFolderNames = [];
 let notes = [];
 let trackingTags = [];
 let currentUnitsPath;
+let record = {};
 let tagsPath;
 let currentColumns = 3; // Default to 3 columns
 let masonryInstance = null;
 
-// Add this function to initialize and start the display
-function initializeAndStart() {
-    getCurrentPaths()
-        .then(() => initializeCurrentTagFile())
-        .then(() => {
-            if (activeUnits.length > 0) {
-                currentUnitId = activeUnits[0];
-                currentUnitIndex = 0;
-                displayCurrentUnit();
-            } else {
-                console.log('No units available to display');
-                displayEmptyState();
-            }
-        })
-        .catch(error => {
-            console.error('Error during initialization:', error);
-            displayEmptyState();
-        });
+
+
+async function initializeCurrentPath() {
+    try {
+        const response = await fetch('/last-used-data');
+        const data = await response.json();
+        
+        if (data.lastUsedUnitsPath && data.records && data.records[data.lastUsedUnitsPath]) {
+            currentUnitsPath = data.lastUsedUnitsPath;
+            record = data.records[currentUnitsPath]; // update global variable
+            console.log('current units path:', currentUnitsPath);
+        } else {
+            console.log('records:', data.records);
+            console.log('no last used units path');
+            currentUnitsPath = null;
+            record = {}; // clear global variable
+        }
+        
+        updateUnitsPathLink(); // Update the UI to reflect the current path
+    } catch (error) {
+        console.error('error initializing current path:', error);
+    }
 }
+
+async function initializeCurrentTagFile() {
+    try {
+        if (record && record.lastUsedTagFile) {
+            currentTagFile = record.lastUsedTagFile;
+            console.log('current tag file:', currentTagFile);
+            await fetchUnitLabels();
+        } else {
+            console.log('no last used tag file');
+            currentTagFile = null;
+            neuronLabels = {};
+            activeUnits = [];
+        }
+        
+        await populateDropdown();
+        displayCurrentUnit();
+    } catch (error) {
+        console.error('error initializing current tag file:', error);
+    }
+}
+
+async function initializeTrackingTags() {
+    if (record && record.setups && record.setups[currentTagFile] && record.setups[currentTagFile].trackingTags) {
+        trackingTagText = record.setups[currentTagFile].trackingTags;
+        // print trackingTagText
+        console.log('trackingTagText:', trackingTagText);
+        applyTracking(trackingTagText);
+    }
+}
+
+async function initializeQuery() {
+    if (record && record.setups && record.setups[currentTagFile] && record.setups[currentTagFile].queryText) {
+        queryText = record.setups[currentTagFile].queryText;
+
+        // put the queryText into the search box
+        const searchBox = document.getElementById('searchBox');
+        searchBox.value = queryText;
+        applySearchByInputBox();
+
+        // print queryText
+        console.log('queryText:', queryText);
+    }
+}
+
 
 // Add this function to display an empty state
 function displayEmptyState() {
@@ -181,26 +264,33 @@ function displayEmptyState() {
     imageContainer.innerHTML = '';
 }
 
+async function initializeApp() {
+    try {
+        await initializeCurrentPath();
+        await initializeCurrentTagFile();
+        await initializeTrackingTags();
+        await initializeQuery();
 
-function initializeApp() {
-    initializeCurrentTagFile();
-    setupEventListeners();
-    updateUnitsPathLink();
-    getInitialPath();
-    updateCurrentQueryDisplay('')
-}
-
-function setupEventListeners() {
-    document.addEventListener('keydown', handleKeyDown);
-
-    const searchBox = document.getElementById('searchBox');
-    searchBox.addEventListener('keydown', function(event) {
-        if (event.key === 'Enter') {
-            applySearch();
+        if (activeUnits.length > 0) {
+            currentUnitId = activeUnits[0];
+            currentUnitIndex = 0;
+            displayCurrentUnit();
+        } else {
+            console.log('No units available to display');
+            displayEmptyState();
         }
-    });
+
+        updateUnitsPathLink();
+        updateCurrentQueryDisplay('');
+    } catch (error) {
+        console.error('Error during initialization:', error);
+        displayEmptyState();
+    }
 }
 
+// update the units path link, detail:
+// 1. update the link text to the current units path
+// 2. update the global variable currentUnitsPath
 function updateUnitsPathLink() {
     const link = document.getElementById('unitsPathLink');
     link.textContent = currentUnitsPath || 'Select Path';
@@ -261,69 +351,7 @@ function listFolderNames() {
         console.log('All Folder Names:', allFolderNames);
     });
 }
-        
 
-function loadSelectedTagFile() {
-    const dropdown = document.getElementById('tagFileDropdown');
-    currentTagFile = dropdown.value;  // Update the global currentTagFile variable
-    console.log('New tag file loaded:', currentTagFile);  // Optional: log the loaded file for debugging
-    updateLastUsedTagFile();  // Update the server with the new last used file
-    fetchUnitLabels();  // Re-fetch the unit labels and update display
-    window.location.reload();// reload current window
-}
-
-function updateLastUsedTagFile() {
-    fetch('/update-log-file', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-            lastUsedTagFile: currentTagFile,
-            lastUsedUnitsPath: currentUnitsPath // Add this line to include the currentUnitsPath
-        })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Failed to update log.json on the server');
-        }
-        console.log('log.json updated successfully');
-    })
-    .catch(error => {
-        console.error('Error updating last used tag file:', error);
-    });
-}
-
-async function initializeCurrentTagFile() {
-    try {
-        const response = await fetch('/last-used-data');
-        const data = await response.json();
-        
-        if (data.lastUsedTagFile) {
-            currentTagFile = data.lastUsedTagFile;
-            console.log('Current tag file:', currentTagFile);
-            await fetchUnitLabels();
-        } else {
-            console.log('No last used tag file found');
-            // Clear any existing data
-            currentTagFile = null;
-            neuronLabels = {};
-            activeUnits = [];
-        }
-        
-        // Update the units path if it's provided
-        if (data.lastUsedUnitsPath) {
-            currentUnitsPath = data.lastUsedUnitsPath;
-            console.log('Current units path:', currentUnitsPath);
-        }
-        
-        await populateDropdown();
-        displayCurrentUnit(); // This will handle the case where no unit is selected
-    } catch (error) {
-        console.error('Error initializing from last used data:', error);
-        // Handle the error, maybe show a message to the user
-    }
-}
 
 function populateDropdown() {
     fetch('/json-files')
@@ -431,10 +459,13 @@ function createTagsDictionary() {
 }
 
 
-function applySearch() {
+function applySearchByInputBox() {
     const searchBox = document.getElementById('searchBox');
     let searchText = searchBox.value;
+    applySearch(searchText);
+}
 
+function applySearch(searchText) {
     // Store the original search text for later use in highlighting
     window.lastSearchText = searchText;
 
@@ -444,7 +475,7 @@ function applySearch() {
     // Parse the query
     const queries = parseQuery(searchText);
 
-    // Check if the search box is empty
+    // Check if the searchText is empty after stripping out space
     if (queries.length === 0) {
         // If the search box is empty, use the full set
         activeUnits = Object.keys(neuronLabels);
@@ -703,7 +734,7 @@ function updateActiveUnitLabels() {
 }
 
 function updateJSON() {
-    console.log('Sending updated data to server:', JSON.stringify(neuronLabels, null, 2)); // Log the data being sent
+    // console.log('Sending updated data to server:', JSON.stringify(neuronLabels, null, 2)); // Log the data being sent
 
     fetch('/update_units_tags', {
         method: 'POST',
@@ -967,11 +998,20 @@ function remapScale() {
     initMasonry();
 }
 
-
-function applyTracking() {
+// if nothing is given to this function, generate trackingTags from the inputBox, otherwise, directly use the trackingTags
+function applyTrackingByInputBox() {
     const inputBox = document.getElementById('searchBox');
     const inputText = inputBox.value;
+    applyTracking(inputText);
+}
+
+function applyTracking(inputText) {
     trackingTags = inputText.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
+
+    // save the inputText to the setup
+    record.setups[currentTagFile].trackingTags = inputText;
+
+    updateLogRecord();
 
     displayCurrentUnit(); // Update the display to apply the tracking styles
 }
@@ -1138,20 +1178,21 @@ function createFile(fileName) {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            throw new Error('网络响应失败');
         }
         return response.json();
     })
-    .then(data => {
+    .then(async data => {
         if (data.fileName) {
-            populateDropdown();  // Refresh the dropdown after creating a new file
-            setCurrentTagFile(data.fileName);  // Set the new file as the current selection
+            populateDropdown();  // 创建新文件后刷新下拉菜单
+            setCurrentTagFile(data.fileName);  // 设定新文件为当前选择
+            await updateLogPath()
         } else {
-            throw new Error('File name not returned from server');
+            throw new Error('服务器未返回文件名');
         }
     })
     .catch(error => {
-        console.error('Error creating file:', error);
+        console.error('创建文件时出错:', error);
     });
 }
 
@@ -1159,6 +1200,9 @@ function setCurrentTagFile(fileName) {
     currentTagFile = fileName;
     const dropdown = document.getElementById('tagFileDropdown');
     dropdown.value = fileName;
+    record.lastUsedTagFile = currentTagFile;
+    
+    updateLogRecord(); // update the record
     fetchUnitLabels();  // Load the labels for the new file
 }
 
@@ -1183,28 +1227,44 @@ async function selectFolder() {
         const data = await response.json();
         currentUnitsPath = data.absolutePath;
         updateUnitsPathLink();
-        console.log('Current directory for image folders:', data.absolutePath);
-        alert(`Units folder updated to: ${data.absolutePath}`);
+        console.log('currentUnitsPath:', currentUnitsPath);
+        alert(`UnitsPath updated: ${currentUnitsPath}`);
 
-        if (data.hasJsonFiles) {
-            // Fetch the list of JSON files in the new folder
-            const jsonFilesResponse = await fetch('/json-files');
-            const jsonFiles = await jsonFilesResponse.json();
-            
-            if (jsonFiles.length > 0) {
-                // Set the first JSON file as the current tag file
-                currentTagFile = jsonFiles[0];
-                updateLastUsedTagFile();
-                console.log('Set current tag file to:', currentTagFile);
-                alert(`Auto-selected tag file: ${currentTagFile}`);
+        // Fetch the current log data
+        const logResponse = await fetch('/last-used-data');
+        const logData = await logResponse.json();
+
+        if (logData.records && logData.records[currentUnitsPath]) {
+            // The selected folder is in the log records
+            record = logData.records[currentUnitsPath];
+            console.log('Found existing record for this path:', record);
+
+            if (record.lastUsedTagFile) {
+                currentTagFile = record.lastUsedTagFile;
+                console.log('Using tag file from record:', currentTagFile);
             } else {
-                alert('no tag files in current folder (.json)');
-                currentTagFile = null;
+                await selectFirstJsonFile();
             }
         } else {
-            alert('no tag files in current folder (.json)');
-            currentTagFile = null;
+            // The selected folder is not in the log records
+            console.log('No existing record for this path. Creating a new one.');
+            record = {"setups": {}};
+            
+            await selectFirstJsonFile();
+            // update the record with the current tag file
+            
         }
+
+        // if currentTagFile is not null, add it as a new setup in setups
+        if (currentTagFile) {
+            record.setups[currentTagFile] = {};
+        }
+
+        record.lastUsedTagFile = currentTagFile;
+
+        // Update the log file with the new or existing record
+        await updateLogPath()
+        await updateLogRecord()
 
         await fetchUnitLabels();
         allFolderNames = await fetch('/list-folder-names').then(res => res.json());
@@ -1212,14 +1272,71 @@ async function selectFolder() {
         populateDropdown();
         displayCurrentUnit();
 
-        // Refresh the page
-        window.location.reload();
-
     } catch (err) {
-        console.error('Error selecting folder:', err);
-        alert('Update failed: ' + err.message);
+        console.error('error when selecting folder:', err);
+        alert('error when selecting folder: ' + err.message);
     }
+}
 
+async function selectFirstJsonFile() {
+    const jsonFilesResponse = await fetch('/json-files');
+    const jsonFiles = await jsonFilesResponse.json();
+    
+    if (jsonFiles.length > 0) {
+        currentTagFile = jsonFiles[0];
+        console.log('Selected first JSON file:', currentTagFile);
+    } else {
+        console.log('No JSON files found in the selected folder');
+        currentTagFile = null;
+    }
+}
+
+async function updateLogPath() {
+    try {
+        const response = await fetch('/update-log-path', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ lastUsedUnitsPath: currentUnitsPath}),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Failed to update log file path');
+        }
+
+        console.log('Log file path updated');
+    } catch (error) {
+        console.error('Error updating log file path:', error);
+        // alert(`Failed to update log file path: ${error.message}`);
+    }
+}
+
+async function updateLogRecord() {
+    try {
+        // Then, send the updated record to the server
+        const response = await fetch('/update-log-record', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                unitsPath: currentUnitsPath,
+                record: record
+            }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Failed to update log file record');
+        }
+
+        console.log('Log file record updated');
+    } catch (error) {
+        console.error('Error updating log file record:', error);
+        // alert(`Failed to update log file record: ${error.message}`);
+    }
 }
 
 function getCurrentNeuronId() {
@@ -1230,7 +1347,15 @@ function updateCurrentQueryDisplay(query) {
     const currentQueryDisplay = document.getElementById('currentQueryDisplay');
     if (query && query.trim() !== '') {
         currentQueryDisplay.textContent = `QURIED: ${query}`;
+
+        // save the query to the setup in the record
+        record.setups[currentTagFile].searchText = query;
+        updateLogRecord();
+
     } else {
         currentQueryDisplay.textContent = 'QURIED: <all>';
+        // remove the searchText in the setup in the record
+        record.setups[currentTagFile].searchText = " ";
+        updateLogRecord();
     }
 }

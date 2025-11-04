@@ -11,21 +11,41 @@ let tagsPath = null;
 function initializePathsFromLog() {
     const logPath = path.join(__dirname, 'log.json');
     try {
+        if (!fs.existsSync(logPath)) {
+            // 创建初始日志结构
+            const initialLog = {
+                lastUsedUnitsPath: null,
+                records: {
+                }
+            };
+            fs.writeFileSync(logPath, JSON.stringify(initialLog, null, 2));
+            throw new Error('Log file created. Please set the units path.');
+        }
+
         const logData = JSON.parse(fs.readFileSync(logPath, 'utf8'));
-        
-        // Check if lastUsedUnitsPath exists and is a non-empty string
+
         if (logData.lastUsedUnitsPath && typeof logData.lastUsedUnitsPath === 'string' && logData.lastUsedUnitsPath.trim() !== '') {
             currentUnitsPath = logData.lastUsedUnitsPath;
-            tagsPath = currentUnitsPath; // Set tagsPath equal to currentUnitsPath
+            const record = logData.records[currentUnitsPath];
+            if (record && record.lastUsedTagFile) {
+                currentTagFile = record.lastUsedTagFile;
+                tagsPath = currentUnitsPath; // 将 tagsPath 设为 currentUnitsPath
+            } else {
+                // 如果没有 tagFile，则设置为默认或相应处理
+                const jsonFiles = fs.readdirSync(currentUnitsPath).filter(file => file.endsWith('.json'));
+                currentTagFile = jsonFiles.length > 0 ? jsonFiles[0] : null;
+                logData.records[currentUnitsPath] = { lastUsedTagFile: currentTagFile };
+                fs.writeFileSync(logPath, JSON.stringify(logData, null, 2));
+            }
+            console.log('从日志初始化路径:', { currentUnitsPath, tagsPath, currentTagFile });
         } else {
-            throw new Error('Invalid or missing lastUsedUnitsPath in log file');
+            throw new Error('日志文件中缺少或无效的 lastUsedUnitsPath');
         }
-        
-        console.log('Paths initialized from log:', { currentUnitsPath, tagsPath });
     } catch (error) {
-        console.error('Error reading or parsing log file:', error);
+        console.error('读取或解析日志文件时出错:', error);
         currentUnitsPath = null;
         tagsPath = null;
+        currentTagFile = null;
     }
 }
 
@@ -41,13 +61,28 @@ function arePathsInitialized() {
 app.post('/update-units-path', (req, res) => {
     const { newPath } = req.body;
     if (fs.existsSync(newPath)) {
+        const logPath = path.join(__dirname, 'log.json');
+        const logData = fs.existsSync(logPath) ? JSON.parse(fs.readFileSync(logPath, 'utf8')) : { lastUsedUnitsPath: null, records: {} };
+
         currentUnitsPath = newPath;
-        tagsPath = newPath; // Update tagsPath as well
-        // Update log file
-        fs.writeFileSync('log.json', JSON.stringify({ lastUsedUnitsPath: currentUnitsPath }));
-        res.json({ success: true, path: currentUnitsPath });
+        tagsPath = newPath;
+
+        if (logData.records[newPath]) {
+            currentTagFile = logData.records[newPath].lastUsedTagFile;
+        } else {
+            const jsonFiles = fs.readdirSync(newPath).filter(file => file.endsWith('.json'));
+            currentTagFile = jsonFiles.length > 0 ? jsonFiles[0] : null;
+            logData.records[newPath] = { lastUsedTagFile: currentTagFile };
+        }
+
+        // 更新 lastUsedUnitsPath 为新路径
+        logData.lastUsedUnitsPath = currentUnitsPath;
+
+        fs.writeFileSync(logPath, JSON.stringify(logData, null, 2));
+
+        res.json({ success: true, path: currentUnitsPath, lastUsedTagFile: currentTagFile });
     } else {
-        res.status(400).json({ success: false, message: 'Invalid path' });
+        res.status(400).json({ success: false, message: '无效的路径' });
     }
 });
 
@@ -82,27 +117,52 @@ app.get('/json-files', (req, res) => {
     });
 });
 
+// Update only the lastUsedUnitsPath in the log file
+app.post('/update-log-path', (req, res) => {
+    const { lastUsedUnitsPath } = req.body;
 
-app.post('/update-log-file', (req, res) => {
-    const { lastUsedTagFile, lastUsedUnitsPath } = req.body;
-
-    if (!lastUsedTagFile || !lastUsedUnitsPath) {
-        return res.status(400).send('Missing required fields');
+    if (!lastUsedUnitsPath) {
+        return res.status(400).send('Missing lastUsedUnitsPath');
     }
 
-    const logData = {
-        lastUsedTagFile,
-        lastUsedUnitsPath
-    };
+    const logPath = path.join(__dirname, 'log.json');
+    let logData = fs.existsSync(logPath) ? JSON.parse(fs.readFileSync(logPath, 'utf8')) : { lastUsedUnitsPath: null, records: {} };
 
-    fs.writeFile('log.json', JSON.stringify(logData, null, 2), (err) => {
+    logData.lastUsedUnitsPath = lastUsedUnitsPath;
+
+    fs.writeFile(logPath, JSON.stringify(logData, null, 2), (err) => {
+        if (err) {
+            console.error('Error writing to log.json:', err);
+            // return res.status(500).send('Failed to update log.json');
+        }
+        res.send('log.json path updated successfully');
+    });
+});
+
+
+// Update the record in the log file
+app.post('/update-log-record', (req, res) => {
+    const { unitsPath, record } = req.body;
+
+    if (!unitsPath || !record) {
+        return res.status(400).send('Missing unitsPath or record');
+    }
+
+    const logPath = path.join(__dirname, 'log.json');
+    let logData = fs.existsSync(logPath) ? JSON.parse(fs.readFileSync(logPath, 'utf8')) : { lastUsedUnitsPath: null, records: {} };
+
+    // Update or create the record for the given unitsPath
+    logData.records[unitsPath] = record;
+
+    fs.writeFile(logPath, JSON.stringify(logData, null, 2), (err) => {
         if (err) {
             console.error('Error writing to log.json:', err);
             return res.status(500).send('Failed to update log.json');
         }
-        res.send('log.json updated successfully');
+        res.send('log.json record updated successfully');
     });
 });
+
 
 app.listen(3000, () => {
     console.log('Server is running on port 2024');
@@ -313,8 +373,8 @@ app.get('/last-used-data', (req, res) => {
         try {
             const log = JSON.parse(data);
             res.json({
-                lastUsedTagFile: log.lastUsedTagFile,
-                lastUsedUnitsPath: log.lastUsedUnitsPath
+                lastUsedUnitsPath: log.lastUsedUnitsPath,
+                records: log.records
             });
         } catch (parseError) {
             console.error('Error parsing log.json:', parseError);

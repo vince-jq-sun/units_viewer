@@ -1,4 +1,47 @@
 {
-  "lastUsedTagFile": "stroop_tags_2_wtsel.json",
-  "lastUsedUnitsPath": "/Users/vince/Documents/units_figures_loadtest_2"
+  "lastUsedUnitsPath": "/Users/vince/Documents/units_figures_MTLerror",
+  "records": {
+    "/Users/vince/Documents/units_figures_MTLerror": {
+      "setups": {
+        "stroop_tags_2_wtsel.json": {
+          "trackingTags": "HIP,MCC",
+          "searchText": "HIP"
+        },
+        "test3.json": {},
+        "test.json": {},
+        "test2.json": {
+          "searchText": "joke",
+          "trackingTags": "sky"
+        }
+      },
+      "lastUsedTagFile": "stroop_tags_2_wtsel.json"
+    },
+    "/Users/vince/Documents/units_figures_loadtest": {
+      "setups": {
+        "mytag.json": {}
+      },
+      "lastUsedTagFile": "mytag.json"
+    },
+    "/Users/vince/Documents/units_figures_loadtest_2": {
+      "setups": {
+        "again.json": {
+          "trackingTags": "qq",
+          "searchText": " "
+        },
+        "green.json": {
+          "trackingTags": "orange"
+        },
+        "ggg.json": {
+          "searchText": " "
+        },
+        "example_h_tags.json": {
+          "trackingTags": "color",
+          "searchText": " "
+        },
+        "new jeans.json": {}
+      },
+      "lastUsedTagFile": "mindful.json"
+    }
+  },
+  "lastUsedTagFile": "mindful.json"
 }

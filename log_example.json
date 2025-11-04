@@ -2,9 +2,7 @@
   "lastUsedUnitsPath": "/Users/vince/Documents/units_figures_loadtest_2",
   "records":{
     "/Users/vince/Documents/units_figures_loadtest_2":{
-        "tagFile":"example_h_tags.json",
-        "trackedTags":"HIP, pre-SMA, AMY, MCC",
-        "queried":"s36"
+        "tagFile":"example_h_tags.json"
         }
   }
 }
